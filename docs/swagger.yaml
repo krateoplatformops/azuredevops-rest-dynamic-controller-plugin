@@ -1,0 +1,144 @@
+basePath: /
+definitions:
+  pipelinepermission.IdentityRef:
+    properties:
+      _links:
+        $ref: '#/definitions/pipelinepermission.ReferenceLinks'
+      descriptor:
+        type: string
+      directoryAlias:
+        type: string
+      displayName:
+        type: string
+      id:
+        type: string
+      imageUrl:
+        type: string
+      inactive:
+        type: boolean
+      isAadIdentity:
+        type: boolean
+      isContainer:
+        type: boolean
+      isDeletedInOrigin:
+        type: boolean
+      profileUrl:
+        type: string
+      uniqueName:
+        type: string
+      url:
+        type: string
+    type: object
+  pipelinepermission.Permission:
+    properties:
+      authorized:
+        type: boolean
+      authorizedBy:
+        $ref: '#/definitions/pipelinepermission.IdentityRef'
+      authorizedOn:
+        type: string
+    type: object
+  pipelinepermission.PipelinePermission:
+    properties:
+      authorized:
+        type: boolean
+      authorizedBy:
+        $ref: '#/definitions/pipelinepermission.IdentityRef'
+      authorizedOn:
+        type: string
+      id:
+        type: integer
+    type: object
+  pipelinepermission.ReferenceLinks:
+    properties:
+      links:
+        additionalProperties: true
+        type: object
+    type: object
+  pipelinepermission.Resource:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      type:
+        type: string
+    type: object
+  pipelinepermission.ResourcePipelinePermissions:
+    properties:
+      allPipelines:
+        $ref: '#/definitions/pipelinepermission.Permission'
+      pipelines:
+        items:
+          $ref: '#/definitions/pipelinepermission.PipelinePermission'
+        type: array
+      resource:
+        $ref: '#/definitions/pipelinepermission.Resource'
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8080
+info:
+  contact:
+    email: contact@krateoplatformops.io
+    name: Krateo Support
+    url: https://krateo.io
+  description: Simple wrapper around Azure DevOps API to provide consisentency of
+    API response for Krateo Operator Generator (KOG)
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Azure DevOps Plugin API for Krateo Operator Generator (KOG)
+  version: "1.0"
+paths:
+  /api/{organization}/{project}/pipelines/pipelinepermissions/{resourceType}/{resourceId}:
+    get:
+      description: Get
+      operationId: get-pipelinepermission
+      parameters:
+      - description: Organization name
+        in: path
+        name: organization
+        required: true
+        type: string
+      - description: Project name
+        in: path
+        name: project
+        required: true
+        type: string
+      - description: Resource type (e.g., pipelines, repositories)
+        in: path
+        name: resourceType
+        required: true
+        type: string
+      - description: Resource ID (e.g., pipeline ID, repository ID)
+        in: path
+        name: resourceId
+        required: true
+        type: string
+      - description: API version (e.g., 7.2-preview.1)
+        in: query
+        name: api-version
+        required: true
+        type: string
+      - description: Basic Auth header (Basic <base64-encoded-username:password>)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pipeline permission details
+          schema:
+            $ref: '#/definitions/pipelinepermission.ResourcePipelinePermissions'
+      summary: Get the pipeline permission of a resource
+schemes:
+- http
+securityDefinitions:
+  Bearer:
+    type: basic
+swagger: "2.0"
