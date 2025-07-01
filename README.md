@@ -20,12 +20,12 @@ It is designed to work with the [`rest-dynamic-controller`](https://github.com/k
 #### Get PipelinePermission
 
 ```http
-GET /{organization}/{project}/_apis/pipelines/pipelinepermissions/{resourceType}/{resourceId}
+GET /api/{organization}/{project}/pipelines/pipelinepermissions/{resourceType}/{resourceId}
 ```
 
 **Description**: 
-Given a ResourceType and ResourceId, it returns authorized definitions for that resource.
-More precisely, it returns the list of pipelines that have permissions to access the specified resource and the fact whether `allPipelines` have access to it.
+Given a `ResourceType` and `ResourceId`, it returns authorized definitions for that resource.
+More precisely, it returns the list of `pipelines` that have permissions to access the specified resource and the fact whether `allPipelines` have access to it.
 
 **Why This Endpoint Exists**:
 - The standard Azure DevOps REST API does not return the `allPipelines` property when said property is set to `authorized: false` on Azure DevOps (default behavior).
