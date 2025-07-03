@@ -13,6 +13,7 @@ import (
 
 	_ "github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/docs"
 	"github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/internal/handlers"
+	"github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/internal/handlers/gitrepository"
 	"github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/internal/handlers/health"
 	"github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/internal/handlers/pipelinepermission"
 	"github.com/krateoplatformops/plumbing/env"
@@ -81,6 +82,9 @@ func main() {
 
 	// PipelinePermission
 	mux.Handle("GET /api/{organization}/{project}/pipelines/pipelinepermissions/{resourceType}/{resourceId}", pipelinepermission.GetPipelinePermission(opts))
+
+	// GitRepository
+	mux.Handle("POST /api/{organization}/{projectId}/git/repositories", gitrepository.PostGitRepository(opts))
 
 	// Swagger UI
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
