@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
 	"github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/internal/handlers"
 )
@@ -85,13 +87,14 @@ func (h *baseHandler) writeJSONResponse(w http.ResponseWriter, statusCode int, b
 // @ID post-gitrepository
 // @Param organization path string true "Organization name"
 // @Param projectId path string true "Project ID or name"
-// @Param sourceRef path string false "Specify the source refs to use while creating a fork repo"
 // @Param api-version query string true "API version (e.g., 7.2-preview.2)"
+// @Param sourceRef query string false "Specify the source refs to use while creating a fork repo"
 // @Param Authorization header string true "Basic Auth header (Basic <base64-encoded-username:password>)"
 // @Param gitrepositoryCreate body CreateRepositoryRequest true "GitRepository creation request body (with additional fields handled by the plugin)"
 // @Accept json
 // @Produce json
 // @Success 201 {object} CreateRepositoryResponse "GitRepository details"
+// @Success 202 {object} CreateRepositoryResponse "GitRepository details (repo created but creation of branch deisgnated as default branch is pending, user must create it, then the gitrepository-controller will update the default branch later)"
 // @Router /api/{organization}/{projectId}/git/repositories [post]
 func (h *postHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	organization := r.PathValue("organization")
@@ -141,19 +144,24 @@ func (h *postHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	requestedDefaultBranch := createRequest.DefaultBranch
-	branchToInit := "refs/heads/main" // Default branch to initialize with
-	if requestedDefaultBranch != "" {
-		branchToInit = requestedDefaultBranch
-	}
-
-	// Automatically enable initialization if defaultBranch was set and Initialize is not set
-	if requestedDefaultBranch != "" && !createRequest.Initialize {
-		createRequest.Initialize = true
-		h.Log.Printf("Default branch specified without initialization — auto-enabling repository initialization")
-	}
 
 	// Decide if a defaultBranch update is needed
-	needsDefaultBranchUpdate := requestedDefaultBranch != "" && requestedDefaultBranch != "refs/heads/main"
+	needsDefaultBranchUpdate := requestedDefaultBranch != ""
+
+	if requestedDefaultBranch == "" {
+		h.Log.Print("No default branch specified in request")
+	} else {
+		h.Log.Printf("Custom default branch '%s' specified", requestedDefaultBranch)
+	}
+
+	// Validate sourceRef if provided
+	valid, err := h.validateSourceRef(organization, projectId, &createRequest, sourceRef, apiVersion, authHeader, w)
+	if !valid || err != nil {
+		return // Stop execution if this validation failed
+	}
+
+	// Auto-initialize logic if needed
+	h.autoInit(&createRequest, needsDefaultBranchUpdate, requestedDefaultBranch)
 
 	// Create the repository request body for Azure DevOps (without defaultBranch)
 	azureDevOpsRequest := GitRepositoryCreateOptionsMinimal{
@@ -163,72 +171,102 @@ func (h *postHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Note: defaultBranch is intentionally omitted for the initial POST request as POST does not support it
 	}
 
-	// Perform POST request to create a new GitRepository on Azure DevOps
+	// 1. Create repository (fork or new)
 	createdRepo, err := h.createGitRepository(organization, projectId, apiVersion, authHeader, sourceRef, azureDevOpsRequest)
 	if err != nil {
 		h.writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to create repository: %v", err))
 		return
 	}
 
+	defaultBranchCreationPending := false
+
+	// 2. Handle initialization vs fork logic
 	if createRequest.ParentRepository != nil {
-		h.Log.Printf("Created repository '%s' as a fork of parent repository '%s'", createdRepo.Name, createRequest.ParentRepository.ID)
-	}
+		// This is a fork - some branches already exist from parent
+		// At least 1 branch should exist in the fork
+		h.Log.Printf("Created fork repository '%s' from parent repository '%s'", createdRepo.Name, createRequest.ParentRepository.ID)
 
-	// forking and initializing are mutually exclusive operations.
-	if createRequest.Initialize && createRequest.ParentRepository == nil {
-		h.Log.Printf("Repository '%s' is not a fork, proceeding with initialization", createdRepo.Name)
-		h.Log.Printf("Repository '%s' will be initialized with an initial commit on branch '%s'", createdRepo.Name, branchToInit)
-
-		if err := h.initializeRepository(organization, projectId, createdRepo.ID, apiVersion, authHeader, branchToInit); err != nil {
-			h.writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to initialize repository '%s': %v", createdRepo.Name, err))
-			return
+		// For forks, check if the desired default branch exists thanks to sourceRef from parent
+		if needsDefaultBranchUpdate {
+			exists, err := h.branchExists(organization, projectId, createdRepo.ID, requestedDefaultBranch, apiVersion, authHeader)
+			if err != nil {
+				h.Log.Printf("Error checking if branch '%s' exists in fork: %v", requestedDefaultBranch, err)
+				h.writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to check if branch '%s' exists in fork: %v", requestedDefaultBranch, err))
+				return
+			}
+			if !exists {
+				// we will return 202 accepted in this case to indicate that the branch creation is pending
+				h.Log.Printf("Branch '%s' does not exist in fork repository '%s'. Cannot set it as default. However, repository is created successfully", requestedDefaultBranch, createdRepo.Name)
+				defaultBranchCreationPending = true
+				needsDefaultBranchUpdate = false // No need to set default branch now (it will raise an error), it needs to be created later by the user
+			}
 		}
-		h.Log.Printf("Successfully initialized repository '%s' with an initial commit", createdRepo.Name)
-	}
+	} else {
+		// This is a new repository - handle initialization and branch creation
+		if createRequest.Initialize {
+			h.Log.Printf("Repository '%s' is not a fork, proceeding with initialization", createdRepo.Name)
 
-	// If defaultBranch is specified and is different from 'refs/heads/main',
-	if needsDefaultBranchUpdate {
-		h.Log.Printf("Setting default branch to '%s' for repository '%s'", requestedDefaultBranch, createdRepo.Name)
+			// Initialize with the requested branch (or default if none specified)
+			initBranch := requestedDefaultBranch
+			if initBranch == "" {
+				initBranch = "refs/heads/main"
+			}
 
-		// Check if the desired branch exists in the new repo.
-		exists, err := h.branchExists(organization, projectId, createdRepo.ID, requestedDefaultBranch, apiVersion, authHeader)
-		if err != nil {
-			h.writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to check if branch '%s' exists: %v", requestedDefaultBranch, err))
-			return
-		}
+			h.Log.Printf("Repository '%s' will be initialized with an initial commit on branch '%s'", createdRepo.Name, initBranch)
 
-		// If the branch does NOT exist, create it.
-		if !exists {
-			h.Log.Printf("Branch '%s' does not exist. Creating it now.", requestedDefaultBranch)
-
-			// This `createBranch` function needs to be smart. It should branch from the repository's *current* default branch.
-			if err := h.createBranch(organization, projectId, createdRepo.ID, requestedDefaultBranch, apiVersion, authHeader); err != nil {
-				// handle error
+			if err := h.initializeRepository(organization, projectId, createdRepo.ID, apiVersion, authHeader, initBranch); err != nil {
+				h.writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to initialize repository '%s': %v", createdRepo.Name, err))
+				return
+			}
+			h.Log.Printf("Successfully initialized repository '%s' with an initial commit", createdRepo.Name)
+			// After initialization, the branch exists, so we can and go directly to setting it as default if needed
+		} else {
+			// Repository is not initialized and is not a fork
+			// Auto-init should have been enabled if a custom default branch was requested
+			// If we reach here, something probably somewhat unexpected happened
+			h.Log.Printf("Auto-init logic should have enabled initialization for repository '%s' with custom default branch '%s' but somehow it was not enabled. This is unexpected behavior", createdRepo.Name, requestedDefaultBranch)
+			if needsDefaultBranchUpdate {
+				h.Log.Printf("Cannot set default branch '%s' on uninitialized repository '%s' - no branches exist", requestedDefaultBranch, createdRepo.Name)
+				h.writeErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Cannot set default branch '%s' on uninitialized repository '%s' - no branches exist", requestedDefaultBranch, createdRepo.Name))
 				return
 			}
 		}
+	}
 
-		h.Log.Printf("Setting default branch to '%s'", requestedDefaultBranch)
+	// 3. Update default branch if needed
+	// At this point, we know branches exist (either from fork or initialization)
+	if needsDefaultBranchUpdate {
+		h.Log.Printf("Setting default branch to '%s' for repository '%s'", requestedDefaultBranch, createdRepo.Name)
+
+		// At this point, we are sure the branch exists (either it was created or it was already there)
+		h.Log.Printf("Updating repository '%s' to set default branch to '%s'", createdRepo.Name, requestedDefaultBranch)
 		updatedRepo, err := h.updateRepositoryDefaultBranch(organization, projectId, createdRepo.ID, requestedDefaultBranch, apiVersion, authHeader)
 		if err != nil {
-			h.Log.Printf("Warning: Failed to update default branch: %v", err)
-			// Continue with the original created repository response
-		} else {
-			// Use the updated repository information
-			createdRepo = updatedRepo
+			h.Log.Printf("Failed to set default branch '%s': %v", requestedDefaultBranch, err)
+			h.writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to set default branch '%s': %v", requestedDefaultBranch, err))
+			return
 		}
+		// Use the updated repository information
+		createdRepo = updatedRepo
+		h.Log.Printf("Successfully set default branch to '%s'", requestedDefaultBranch)
+
 	}
 
-	// Convert the response to the expected format
-	response := CreateRepositoryResponse{
-		Name:             createdRepo.Name,
-		ParentRepository: createdRepo.ParentRepository,
-		Project:          createdRepo.Project,
-	}
+	// Convert the response to the expected format which is GitRepository
+	response := CreateRepositoryResponse(*createdRepo)
 
 	responseBody, err := json.Marshal(response)
 	if err != nil {
+		h.Log.Printf("Failed to marshal response: %v", err)
 		h.writeErrorResponse(w, http.StatusInternalServerError, "Failed to marshal response")
+		return
+	}
+
+	// If the branch creation is pending (currently in the forked repo there is not that branch)
+	// we return 202 Accepted
+	if defaultBranchCreationPending {
+		h.Log.Printf("Branch '%s' creation is pending in fork repository '%s'. Returning 202 Accepted", requestedDefaultBranch, createdRepo.Name)
+		h.writeJSONResponse(w, http.StatusAccepted, responseBody)
 		return
 	}
 
@@ -292,6 +330,8 @@ func (h *postHandler) updateRepositoryDefaultBranch(organization, projectId, rep
 		DefaultBranch: defaultBranch,
 	}
 
+	h.Log.Printf("Repository update request body: %+v", updateRequest)
+
 	// Marshal the request body
 	requestBody, err := json.Marshal(updateRequest)
 	if err != nil {
@@ -328,14 +368,24 @@ func (h *postHandler) updateRepositoryDefaultBranch(organization, projectId, rep
 	return &updatedRepo, nil
 }
 
+// Helper functions in the postHandler for:
+// - repository initialization
+// - branch existence check
+// - setting up auto-initialization logic
+// - validating sourceRef
+
 func (h *postHandler) initializeRepository(organization, projectId, repositoryId, apiVersion, authHeader, branchToInit string) error {
-	url := fmt.Sprintf("https://dev.azure.com/%s/%s/_apis/git/repositories/%s/pushes?api-version=%s",
-		organization, projectId, repositoryId, apiVersion)
+	// Ensure branch name has proper format
+	if !strings.HasPrefix(branchToInit, "refs/heads/") {
+		branchToInit = "refs/heads/" + branchToInit
+	}
+
+	url := fmt.Sprintf("https://dev.azure.com/%s/%s/_apis/git/repositories/%s/pushes?api-version=%s", organization, projectId, repositoryId, apiVersion)
 
 	requestBody := map[string]interface{}{
 		"refUpdates": []map[string]string{
 			{
-				"name":        branchToInit, // Use the provided branch name
+				"name":        branchToInit,
 				"oldObjectId": "0000000000000000000000000000000000000000",
 			},
 		},
@@ -376,114 +426,25 @@ func (h *postHandler) initializeRepository(organization, projectId, repositoryId
 		return fmt.Errorf("failed to initialize repository, status: %d, body: %s", resp.StatusCode, string(responseBody))
 	}
 
-	h.Log.Printf("Successfully initialized repository '%s'", repositoryId)
-	return nil
-}
-
-// dynamically discovers the repository's default branch and uses it as the source for creating the new branch.
-func (h *postHandler) createBranch(organization, projectId, repositoryId, branchName, apiVersion, authHeader string) error {
-
-	// Step 1: Get the repository's details to find its default branch name.
-	repoInfoURL := fmt.Sprintf("https://dev.azure.com/%s/%s/_apis/git/repositories/%s?api-version=%s", organization, projectId, repositoryId, apiVersion)
-
-	resp, err := h.makeAzuredevopsRequest("GET", repoInfoURL, authHeader, nil)
-	if err != nil {
-		return fmt.Errorf("failed to get repository info to determine default branch: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed to get repository info, status: %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	// Unmarshal only the field we need: defaultBranch
-	var repoDetails struct {
-		DefaultBranch string `json:"defaultBranch"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&repoDetails); err != nil {
-		return fmt.Errorf("failed to unmarshal repository details to find default branch: %w", err)
-	}
-
-	if repoDetails.DefaultBranch == "" {
-		return fmt.Errorf("could not determine the default branch for the repository")
-	}
-
-	h.Log.Printf("Determined repository's default branch is '%s'. Using it as source.", repoDetails.DefaultBranch)
-
-	// Step 2: Get the commit SHA (objectId) of that default branch.
-	// The API gives us "refs/heads/main", so we trim the prefix for the filter.
-	sourceBranchNameForFilter := strings.TrimPrefix(repoDetails.DefaultBranch, "refs/heads/")
-	sourceBranchInfoURL := fmt.Sprintf("https://dev.azure.com/%s/%s/_apis/git/repositories/%s/refs?filter=heads/%s&api-version=%s", organization, projectId, repositoryId, sourceBranchNameForFilter, apiVersion)
-
-	resp, err = h.makeAzuredevopsRequest("GET", sourceBranchInfoURL, authHeader, nil)
-	if err != nil {
-		return fmt.Errorf("failed to get info for source branch '%s': %w", sourceBranchNameForFilter, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to get info for source branch '%s', status: %d", sourceBranchNameForFilter, resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read source branch response: %w", err)
-	}
-
-	var refsResponse struct {
-		Value []struct {
-			ObjectId string `json:"objectId"`
-		} `json:"value"`
-	}
-	if err := json.Unmarshal(body, &refsResponse); err != nil {
-		return fmt.Errorf("failed to unmarshal source branch refs response: %w", err)
-	}
-
-	if len(refsResponse.Value) == 0 {
-		return fmt.Errorf("source branch '%s' not found in repository, cannot create new branch", sourceBranchNameForFilter)
-	}
-	sourceBranchObjectId := refsResponse.Value[0].ObjectId
-
-	// Step 3: Create the new branch pointing to the source branch's commit SHA.
-	createBranchUrl := fmt.Sprintf("https://dev.azure.com/%s/%s/_apis/git/repositories/%s/refs?api-version=%s", organization, projectId, repositoryId, apiVersion)
-
-	createBranchRequest := []map[string]interface{}{
-		{
-			"name":        branchName,                                 // The new branch to create
-			"oldObjectId": "0000000000000000000000000000000000000000", // Required for creating a new ref
-			"newObjectId": sourceBranchObjectId,                       // Point the new branch to the source commit
-		},
-	}
-
-	requestBody, err := json.Marshal(createBranchRequest)
-	if err != nil {
-		return fmt.Errorf("failed to marshal create branch request: %w", err)
-	}
-
-	h.Log.Printf("Creating branch '%s' from source commit '%s'", branchName, sourceBranchObjectId)
-	resp, err = h.makeAzuredevopsRequest("POST", createBranchUrl, authHeader, requestBody)
-	if err != nil {
-		return fmt.Errorf("failed to execute create branch request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// The API returns 201 Created on success.
-	if resp.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed to create branch, status: %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	h.Log.Printf("Successfully created branch '%s'", branchName)
+	h.Log.Printf("Successfully initialized repository '%s' with branch '%s'", repositoryId, branchToInit)
 	return nil
 }
 
 func (h *postHandler) branchExists(organization, projectId, repositoryId, branchName, apiVersion, authHeader string) (bool, error) {
-	// Remove the 'refs/heads/' prefix if present for the API call
+	// Remove the 'refs/heads/' prefix if present for the `refs` API endpoint
 	branchNameForAPI := strings.TrimPrefix(branchName, "refs/heads/")
 
-	url := fmt.Sprintf("https://dev.azure.com/%s/%s/_apis/git/repositories/%s/refs?filter=heads/%s&api-version=%s",
-		organization, projectId, repositoryId, branchNameForAPI, apiVersion)
+	url := fmt.Sprintf("https://dev.azure.com/%s/%s/_apis/git/repositories/%s/refs?filter=heads/%s&api-version=%s", organization, projectId, repositoryId, branchNameForAPI, apiVersion)
+
+	h.Log.Printf("Checking if branch '%s' exists in repository '%s'", branchNameForAPI, repositoryId)
+	h.Log.Printf("Branch existence check URL: %s", url)
+
+	// Sleep to allow any potential delays in branch creation
+	// Without this, we might check too early after creation and it has been observed that Azure DevOps API can take a moment to reflect new branches
+	// This is a workaround for the observed delay in branch creation visibility
+	// Minimum wait time tested: 1 second
+	h.Log.Printf("Waiting some seconds before checking branch existence...")
+	time.Sleep(1 * time.Second)
 
 	resp, err := h.makeAzuredevopsRequest("GET", url, authHeader, nil)
 	if err != nil {
@@ -512,4 +473,82 @@ func (h *postHandler) branchExists(organization, projectId, repositoryId, branch
 	h.Log.Printf("Branch existence check response: %s", string(body))
 
 	return len(refsResponse.Value) > 0, nil
+}
+
+func (h *postHandler) autoInit(createRequest *CreateRepositoryRequest, needsDefaultBranchUpdate bool, requestedDefaultBranch string) {
+	h.Log.Printf("Auto-initialization logic for repository '%s' with custom default branch '%s'", createRequest.Name, requestedDefaultBranch)
+
+	if createRequest.ParentRepository == nil {
+		// This is a new repository (not a fork)
+		if needsDefaultBranchUpdate {
+			// Custom default branch specified for new repo
+			if !createRequest.Initialize {
+				// User didn't explicitly enable initialization, but they want a custom default branch
+				// We need to initialize to create the branch
+				h.Log.Printf("Custom default branch '%s' specified without initialization - auto-enabling initialization", requestedDefaultBranch)
+				createRequest.Initialize = true
+			} else {
+				h.Log.Printf("Custom default branch '%s' specified with initialization already enabled", requestedDefaultBranch)
+			}
+		} else {
+			// No custom default branch specified
+			if createRequest.Initialize {
+				h.Log.Print("Repository initialization enabled without custom default branch - will use Azure DevOps default")
+			} else {
+				h.Log.Print("Repository will be created empty (no initialization, no custom default branch)")
+			}
+		}
+	} else {
+		// This is a fork
+		if needsDefaultBranchUpdate {
+			h.Log.Printf("Fork repository requested with custom default branch '%s' - will validate branch exists in fork", requestedDefaultBranch)
+		}
+
+		// For forks, we don't auto-enable initialization since the repo gets branches from parent
+		if createRequest.Initialize {
+			h.Log.Print("Warning: Initialize flag is set for fork repository - already has branches from parent")
+			// We can ignore this since forks already have branches from the parent
+		}
+	}
+	h.Log.Printf("Auto-initialization logic complete for repository '%s': Initialize=%t, CustomDefaultBranch='%s'", createRequest.Name, createRequest.Initialize, requestedDefaultBranch)
+}
+
+func (h *postHandler) validateSourceRef(organization string, projectId string, createRequest *CreateRepositoryRequest, sourceRef, apiVersion, authHeader string, w http.ResponseWriter) (bool, error) {
+
+	if createRequest.ParentRepository != nil {
+
+		// check if sourceRef is provided and if it is a valid branch
+		if sourceRef != "" {
+			h.Log.Printf("Original SourceRef provided: %s", sourceRef)
+
+			// decode sourceRef if it is URL encoded
+			sourceRef, err := url.QueryUnescape(sourceRef)
+			if err != nil {
+				h.Log.Printf("Error decoding sourceRef '%s': %v", sourceRef, err)
+				h.writeErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Invalid sourceRef '%s': %v", sourceRef, err))
+				return false, err
+			}
+			h.Log.Printf("Decoded SourceRef: %s", sourceRef)
+
+			if !strings.HasPrefix(sourceRef, "refs/heads/") {
+				h.writeErrorResponse(w, http.StatusBadRequest, "sourceRef must start with 'refs/heads/'")
+				return false, fmt.Errorf("sourceRef must start with 'refs/heads/'")
+			}
+			exists, err := h.branchExists(organization, projectId, createRequest.ParentRepository.ID, sourceRef, apiVersion, authHeader)
+			if err != nil {
+				h.Log.Printf("Error checking if sourceRef '%s' exists in parent repository '%s': %v", sourceRef, createRequest.ParentRepository.ID, err)
+				h.writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to check if sourceRef '%s' exists in parent repository '%s': %v", sourceRef, createRequest.ParentRepository.ID, err))
+				return false, err
+			}
+			if exists {
+				h.Log.Printf("SourceRef '%s' exists in parent repository '%s'", sourceRef, createRequest.ParentRepository.ID)
+			} else {
+				h.Log.Printf("SourceRef '%s' does not exist in parent repository '%s'", sourceRef, createRequest.ParentRepository.ID)
+				h.writeErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("SourceRef '%s' does not exist in parent repository '%s'", sourceRef, createRequest.ParentRepository.ID))
+				return false, fmt.Errorf("sourceRef '%s' does not exist in parent repository '%s'", sourceRef, createRequest.ParentRepository.ID)
+			}
+		}
+	}
+	h.Log.Printf("SourceRef validation complete for repository '%s': SourceRef='%s'", createRequest.Name, sourceRef)
+	return true, nil
 }

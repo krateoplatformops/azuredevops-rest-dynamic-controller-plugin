@@ -52,16 +52,16 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Specify the source refs to use while creating a fork repo",
-                        "name": "sourceRef",
-                        "in": "path"
-                    },
-                    {
-                        "type": "string",
                         "description": "API version (e.g., 7.2-preview.2)",
                         "name": "api-version",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Specify the source refs to use while creating a fork repo",
+                        "name": "sourceRef",
+                        "in": "query"
                     },
                     {
                         "type": "string",
@@ -83,6 +83,12 @@ const docTemplate = `{
                 "responses": {
                     "201": {
                         "description": "GitRepository details",
+                        "schema": {
+                            "$ref": "#/definitions/gitrepository.CreateRepositoryResponse"
+                        }
+                    },
+                    "202": {
+                        "description": "GitRepository details (repo created but creation of branch deisgnated as default branch is pending, user must create it, then the gitrepository-controller will update the default branch later)",
                         "schema": {
                             "$ref": "#/definitions/gitrepository.CreateRepositoryResponse"
                         }
@@ -154,11 +160,23 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "gitrepository.AzureDevOpsTime": {
+            "type": "object",
+            "properties": {
+                "time.Time": {
+                    "type": "string"
+                }
+            }
+        },
         "gitrepository.CreateRepositoryRequest": {
             "type": "object",
             "properties": {
                 "defaultBranch": {
                     "type": "string"
+                },
+                "initialize": {
+                    "description": "Indicates if the repository should be initialized with an initial commit",
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"
@@ -174,6 +192,27 @@ const docTemplate = `{
         "gitrepository.CreateRepositoryResponse": {
             "type": "object",
             "properties": {
+                "_links": {
+                    "$ref": "#/definitions/gitrepository.ReferenceLinks"
+                },
+                "creationDate": {
+                    "$ref": "#/definitions/gitrepository.AzureDevOpsTime"
+                },
+                "defaultBranch": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isDisabled": {
+                    "type": "boolean"
+                },
+                "isFork": {
+                    "type": "boolean"
+                },
+                "isInMaintenance": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -182,6 +221,27 @@ const docTemplate = `{
                 },
                 "project": {
                     "$ref": "#/definitions/gitrepository.TeamProjectReference"
+                },
+                "remoteUrl": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "sshUrl": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "validRemoteUrls": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "webUrl": {
+                    "type": "string"
                 }
             }
         },
@@ -257,6 +317,15 @@ const docTemplate = `{
                 "ProjectVisibilityPublic"
             ]
         },
+        "gitrepository.ReferenceLinks": {
+            "type": "object",
+            "properties": {
+                "links": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            }
+        },
         "gitrepository.TeamProjectCollectionReference": {
             "type": "object",
             "properties": {
@@ -290,7 +359,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "lastUpdateTime": {
-                    "type": "string"
+                    "$ref": "#/definitions/gitrepository.AzureDevOpsTime"
                 },
                 "name": {
                     "type": "string"

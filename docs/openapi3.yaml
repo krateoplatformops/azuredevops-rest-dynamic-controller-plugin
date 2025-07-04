@@ -35,16 +35,15 @@ paths:
           required: true
           schema:
             type: string
-        - name: sourceRef
-          in: path
-          description: Specify the source refs to use while creating a fork repo
-          required: true
-          schema:
-            type: string
         - name: api-version
           in: query
           description: API version (e.g., 7.2-preview.2)
           required: true
+          schema:
+            type: string
+        - name: sourceRef
+          in: query
+          description: Specify the source refs to use while creating a fork repo
           schema:
             type: string
         - name: Authorization
@@ -63,6 +62,12 @@ paths:
       responses:
         "201":
           description: GitRepository details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/gitrepository.CreateRepositoryResponse'
+        "202":
+          description: GitRepository details (repo created but creation of branch deisgnated as default branch is pending, user must create it, then the gitrepository-controller will update the default branch later)
           content:
             application/json:
               schema:
@@ -119,11 +124,19 @@ paths:
                 $ref: '#/components/schemas/pipelinepermission.ResourcePipelinePermissions'
 components:
   schemas:
+    gitrepository.AzureDevOpsTime:
+      type: object
+      properties:
+        time.Time:
+          type: string
     gitrepository.CreateRepositoryRequest:
       type: object
       properties:
         defaultBranch:
           type: string
+        initialize:
+          type: boolean
+          description: Indicates if the repository should be initialized with an initial commit
         name:
           type: string
         parentRepository:
@@ -133,12 +146,40 @@ components:
     gitrepository.CreateRepositoryResponse:
       type: object
       properties:
+        _links:
+          $ref: '#/components/schemas/gitrepository.ReferenceLinks'
+        creationDate:
+          $ref: '#/components/schemas/gitrepository.AzureDevOpsTime'
+        defaultBranch:
+          type: string
+        id:
+          type: string
+        isDisabled:
+          type: boolean
+        isFork:
+          type: boolean
+        isInMaintenance:
+          type: boolean
         name:
           type: string
         parentRepository:
           $ref: '#/components/schemas/gitrepository.GitRepositoryRef'
         project:
           $ref: '#/components/schemas/gitrepository.TeamProjectReference'
+        remoteUrl:
+          type: string
+        size:
+          type: integer
+        sshUrl:
+          type: string
+        url:
+          type: string
+        validRemoteUrls:
+          type: array
+          items:
+            type: string
+        webUrl:
+          type: string
     gitrepository.GitRepositoryRef:
       type: object
       properties:
@@ -191,6 +232,12 @@ components:
       x-enum-varnames:
         - ProjectVisibilityPrivate
         - ProjectVisibilityPublic
+    gitrepository.ReferenceLinks:
+      type: object
+      properties:
+        links:
+          type: object
+          additionalProperties: true
     gitrepository.TeamProjectCollectionReference:
       type: object
       properties:
@@ -214,7 +261,7 @@ components:
         id:
           type: string
         lastUpdateTime:
-          type: string
+          $ref: '#/components/schemas/gitrepository.AzureDevOpsTime'
         name:
           type: string
         revision:

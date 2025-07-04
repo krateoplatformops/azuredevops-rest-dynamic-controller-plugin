@@ -175,13 +175,7 @@ type GetRepositoryResponse GitRepository
 // CreateRepositoryRequest represents the request for creating a repository
 type CreateRepositoryRequest GitRepositoryCreateOptionsMinimalPlugin
 
-// PostRepositoryResponse represents the specific response structure for POST /repositories
-// This matches the exact JSON structure returned by the POST operation
-type CreateRepositoryResponse struct {
-	Name             string                `json:"name,omitempty"`
-	ParentRepository *GitRepositoryRef     `json:"parentRepository,omitempty"`
-	Project          *TeamProjectReference `json:"project,omitempty"`
-}
+type CreateRepositoryResponse GitRepository
 
 // UpdateRepositoryRequest represents the request for updating a repository
 type UpdateRepositoryRequest GitRepositoryUpdateOptions

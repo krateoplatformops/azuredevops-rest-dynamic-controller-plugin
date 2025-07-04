@@ -1,9 +1,18 @@
 basePath: /
 definitions:
+  gitrepository.AzureDevOpsTime:
+    properties:
+      time.Time:
+        type: string
+    type: object
   gitrepository.CreateRepositoryRequest:
     properties:
       defaultBranch:
         type: string
+      initialize:
+        description: Indicates if the repository should be initialized with an initial
+          commit
+        type: boolean
       name:
         type: string
       parentRepository:
@@ -13,12 +22,40 @@ definitions:
     type: object
   gitrepository.CreateRepositoryResponse:
     properties:
+      _links:
+        $ref: '#/definitions/gitrepository.ReferenceLinks'
+      creationDate:
+        $ref: '#/definitions/gitrepository.AzureDevOpsTime'
+      defaultBranch:
+        type: string
+      id:
+        type: string
+      isDisabled:
+        type: boolean
+      isFork:
+        type: boolean
+      isInMaintenance:
+        type: boolean
       name:
         type: string
       parentRepository:
         $ref: '#/definitions/gitrepository.GitRepositoryRef'
       project:
         $ref: '#/definitions/gitrepository.TeamProjectReference'
+      remoteUrl:
+        type: string
+      size:
+        type: integer
+      sshUrl:
+        type: string
+      url:
+        type: string
+      validRemoteUrls:
+        items:
+          type: string
+        type: array
+      webUrl:
+        type: string
     type: object
   gitrepository.GitRepositoryRef:
     properties:
@@ -72,6 +109,12 @@ definitions:
     x-enum-varnames:
     - ProjectVisibilityPrivate
     - ProjectVisibilityPublic
+  gitrepository.ReferenceLinks:
+    properties:
+      links:
+        additionalProperties: true
+        type: object
+    type: object
   gitrepository.TeamProjectCollectionReference:
     properties:
       avatarUrl:
@@ -94,7 +137,7 @@ definitions:
       id:
         type: string
       lastUpdateTime:
-        type: string
+        $ref: '#/definitions/gitrepository.AzureDevOpsTime'
       name:
         type: string
       revision:
@@ -265,14 +308,14 @@ paths:
         name: projectId
         required: true
         type: string
-      - description: Specify the source refs to use while creating a fork repo
-        in: path
-        name: sourceRef
-        type: string
       - description: API version (e.g., 7.2-preview.2)
         in: query
         name: api-version
         required: true
+        type: string
+      - description: Specify the source refs to use while creating a fork repo
+        in: query
+        name: sourceRef
         type: string
       - description: Basic Auth header (Basic <base64-encoded-username:password>)
         in: header
@@ -291,6 +334,12 @@ paths:
       responses:
         "201":
           description: GitRepository details
+          schema:
+            $ref: '#/definitions/gitrepository.CreateRepositoryResponse'
+        "202":
+          description: GitRepository details (repo created but creation of branch
+            deisgnated as default branch is pending, user must create it, then the
+            gitrepository-controller will update the default branch later)
           schema:
             $ref: '#/definitions/gitrepository.CreateRepositoryResponse'
       summary: Create a new GitRepository on Azure DevOps
