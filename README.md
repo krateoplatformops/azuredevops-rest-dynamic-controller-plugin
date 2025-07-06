@@ -131,8 +131,15 @@ It allows you to specify the `defaultBranch` field to set the default branch of 
 ```
 </details>
 
+
+**Response status codes**:
+- `201 Created`: The GitRrepository was successfully created.
+- `202 Accepted`: The GitRrepository was successfully created but `defaultBranch` specified in the request body does not exist in the repository.
+- `400 Bad Request`: The request body is invalid, the `sourceRef` branch does not exist in the parent repository or other validation errors occurred.
+- `500 Internal Server Error`: An unexpected error occurred while processing the request.
+
 <details>
-<summary><b>Response body example</b></summary>
+<summary><b>Response example</b></summary>
 
 ```json
 {
@@ -198,10 +205,6 @@ It allows you to specify the `defaultBranch` field to set the default branch of 
   "webUrl": "string"
 }
 ```
-
-**Response status codes**:
-- `201 Created`: The GitRrepository was successfully created.
-- `202 Accepted`: The GitRrepository was successfully created but `defaultBranch` specified in the request body does not exist in the repository.
 
 </details>
 
