@@ -110,7 +110,9 @@ It allows you to specify the `defaultBranch` field to set the default branch of 
 - `api-version` (string, required): The version of the Azure DevOps REST API to use. For example, `7.2-preview.2`.
 - `sourceRef` (string, optional): The source reference for the repository. This is typically a branch name (e.g., `refs/heads/main`).
 
-**Request body**:
+<details>
+<summary><b>Request body example</b></summary>
+
 ```json
 {
   "name": "string",
@@ -127,9 +129,10 @@ It allows you to specify the `defaultBranch` field to set the default branch of 
   }
 }
 ```
+</details>
 
 <details>
-<summary><b>Response example</b></summary>
+<summary><b>Response body example</b></summary>
 
 ```json
 {
@@ -195,11 +198,12 @@ It allows you to specify the `defaultBranch` field to set the default branch of 
   "webUrl": "string"
 }
 ```
-</details>
 
-Response status codes:
+**Response status codes**:
 - `201 Created`: The GitRrepository was successfully created.
 - `202 Accepted`: The GitRrepository was successfully created but `defaultBranch` specified in the request body does not exist in the repository.
+
+</details>
 
 ## Swagger Documentation
 
