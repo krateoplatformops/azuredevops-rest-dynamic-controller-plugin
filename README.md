@@ -144,7 +144,7 @@ It allows you to specify the `defaultBranch` field to set the default branch of 
 ```
 
 > [!NOTE]  
-> The field `projectId` (path parameter) can be either the project ID or the project name. The fields `project.id` and `parentRepository.project.id` in the request body must be the project ID (not the project name) and are required when forking a repository. If you are not forking a repository, you can omit these fields.
+> The field `projectId` (path parameter) can be either the project ID or the project name. The fields `project.id` and `parentRepository.project.id` in the request body must be the project ID (not the project name) and are required when forking a repository. If you are not forking a repository, you have to omit these fields.
 
 </details>
 
