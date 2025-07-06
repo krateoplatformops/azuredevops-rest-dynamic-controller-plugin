@@ -44,9 +44,9 @@ More precisely, it returns the list of `pipelines` that have permissions to acce
 
 **Query parameters**:
 - `api-version` (string, required): The version of the Azure DevOps REST API to use. For example, `7.2-preview.2`.
+</details>
 
 <details>
-
 <summary><b>Response</b></summary>
 
 **Response status codes**:
