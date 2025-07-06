@@ -102,7 +102,7 @@ POST /api/{organization}/{projectId}/git/repositories
 
 **Description**:
 This endpoint creates a new GitRepository in the specified Azure DevOps project.
-It allows you to specify the `initialize` field to indicate whether the repository should be initialized with a first commit. (Note: you cannot initialize a repository with a first commit if you are forking a repository.)
+It allows you to specify the `initialize` field to indicate whether the repository should be initialized with a first commit. (Note: you cannot initialize a repository with a first commit if you are forking a repository).
 It allows you to specify the `defaultBranch` field to set the default branch of the repository.
 
 **Why This Endpoint Exists**:
