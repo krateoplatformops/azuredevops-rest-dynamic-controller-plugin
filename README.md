@@ -232,7 +232,7 @@ For more detailed information about the API endpoints, please refer to the Swagg
 
 ## Azure DevOps API Reference
 
-For complete Azure DevOps REST API documentation, visit: [Azure DevOps REST API docs](https://learn.microsoft.com/en-us/rest/api/azure/devops/)
+For complete Azure DevOps REST API documentation, visit: [Azure DevOps REST API docs](https://learn.microsoft.com/en-us/rest/api/azure/devops/) and [API Specifications](https://github.com/MicrosoftDocs/vsts-rest-api-specs/tree/master).
 
 ## Authentication
 
