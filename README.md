@@ -33,6 +33,9 @@ More precisely, it returns the list of `pipelines` that have permissions to acce
 - The standard Azure DevOps REST API does not return the `allPipelines` property when said property is set to `authorized: false` on Azure DevOps (default behavior).
 - This endpoint checks if the response from the Azure DevOps REST API contains the `allPipelines` property and, if not, it adds it with a value of `authorized: false`.
 
+<details>
+<summary><b>Request</b></summary>
+
 **Path parameters**:
 - `organization` (string, required): The name of the Azure DevOps organization.
 - `project` (string, required): The name of the Azure DevOps project.
@@ -43,8 +46,15 @@ More precisely, it returns the list of `pipelines` that have permissions to acce
 - `api-version` (string, required): The version of the Azure DevOps REST API to use. For example, `7.2-preview.2`.
 
 <details>
-<summary><b>Response example</b></summary>
 
+<summary><b>Response</b></summary>
+
+**Response status codes**:
+- `200 OK`: The request was successful.
+- `401 Unauthorized`: The request is not authorized. Ensure that the `Authorization` header is set correctly.
+- `500 Internal Server Error`: An unexpected error occurred while processing the request.
+
+**Response body example**:
 ```json
 {
   "resource": {
@@ -91,7 +101,7 @@ POST /api/{organization}/{projectId}/git/repositories
 ```
 
 **Description**:
-This endpoint creates a new Git repository in the specified Azure DevOps project.
+This endpoint creates a new GitRepository in the specified Azure DevOps project.
 It allows you to specify the `initialize` field to indicate whether the repository should be initialized with a first commit.
 It allows you to specify the `defaultBranch` field to set the default branch of the repository.
 
@@ -102,22 +112,25 @@ It allows you to specify the `defaultBranch` field to set the default branch of 
 - In addition, it performs additional validations related to branch existence (for forks) and repository initialization. For instance auto-initialization of the repository with a first commit on the `defaultBranch` branch when the `initialize` field is set to `false` or omitted but the `defaultBranch` field is set to a branch name.
 - Another additional validation is that it checks if the `sourceRef` branch exists in the parent repository when forking a repository. If it does not exist, it returns a `400 Bad Request` error.
 
+<details>
+<summary><b>Request</b></summary>
+
 **Path parameters**:
 - `organization` (string, required): The name of the Azure DevOps organization.
-- `projectId` (string, required): The ID of the Azure DevOps project.
+- `projectId` (string, required): The ID or name of the Azure DevOps project.
 
 **Query parameters**:
 - `api-version` (string, required): The version of the Azure DevOps REST API to use. For example, `7.2-preview.2`.
 - `sourceRef` (string, optional): The source reference for the repository. This is typically a branch name (e.g., `refs/heads/main`).
 
-<details>
-<summary><b>Request body example</b></summary>
-
+**Request body example**:
 ```json
 {
   "name": "string",
   "defaultBranch": "string",    // Adjusted field
   "initialize": true,           // Adjusted field
+
+  // From here, optional, fork-related fields:
   "parentRepository": {
     "id": "4b8c6f64-5717-4562-b3fc-2c963f66afa6",
     "project": {
@@ -131,16 +144,17 @@ It allows you to specify the `defaultBranch` field to set the default branch of 
 ```
 </details>
 
+<details>
+<summary><b>Response</b></summary>
 
 **Response status codes**:
 - `201 Created`: The GitRrepository was successfully created.
 - `202 Accepted`: The GitRrepository was successfully created but `defaultBranch` specified in the request body does not exist in the repository.
 - `400 Bad Request`: The request body is invalid, the `sourceRef` branch does not exist in the parent repository or other validation errors occurred.
+- `401 Unauthorized`: The request is not authorized. Ensure that the `Authorization` header is set correctly.
 - `500 Internal Server Error`: An unexpected error occurred while processing the request.
 
-<details>
-<summary><b>Response example</b></summary>
-
+**Response body example**:
 ```json
 {
   "_links": {
