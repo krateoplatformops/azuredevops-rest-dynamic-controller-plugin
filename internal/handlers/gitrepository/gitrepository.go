@@ -554,7 +554,13 @@ func (h *postHandler) validateSourceRef(organization string, projectId string, c
 				return false, fmt.Errorf("sourceRef '%s' does not exist in parent repository '%s'", sourceRef, createRequest.ParentRepository.ID)
 			}
 		}
+		h.Log.Printf("SourceRef validation complete for repository '%s': SourceRef='%s'", createRequest.Name, sourceRef)
+	} else {
+		// No parent repository, so no sourceRef validation needed
+		h.Log.Printf("No parent repository, skipping sourceRef validation for repository '%s'", createRequest.Name)
+		if sourceRef != "" {
+			h.Log.Printf("Warning: sourceRef '%s' provided for a new repository without a parent repository. This will be ignored.", sourceRef)
+		}
 	}
-	h.Log.Printf("SourceRef validation complete for repository '%s': SourceRef='%s'", createRequest.Name, sourceRef)
 	return true, nil
 }
