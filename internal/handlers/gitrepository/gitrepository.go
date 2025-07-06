@@ -182,8 +182,8 @@ func (h *postHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// 2. Handle initialization vs fork logic
 	if createRequest.ParentRepository != nil {
-		// This is a fork - some branches already exist from parent
-		// At least 1 branch should exist in the fork
+		// This is a fork - probably some branches already exist from parent
+		// we could check if the requested default branch exists in the parent repository
 		h.Log.Printf("Created fork repository '%s' from parent repository '%s'", createdRepo.Name, createRequest.ParentRepository.ID)
 
 		// For forks, check if the desired default branch exists thanks to sourceRef from parent
@@ -200,6 +200,8 @@ func (h *postHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				defaultBranchCreationPending = true
 				needsDefaultBranchUpdate = false // No need to set default branch now (it will raise an error), it needs to be created later by the user
 			}
+			h.Log.Printf("Branch '%s' exists in fork repository '%s'", requestedDefaultBranch, createdRepo.Name)
+			// If the branch exists, we can proceed to set it as default branch later
 		}
 	} else {
 		// This is a new repository - handle initialization and branch creation
@@ -262,8 +264,12 @@ func (h *postHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If the branch creation is pending (currently in the forked repo there is not that branch)
-	// we return 202 Accepted
+	// Forked repo case:
+	// If the branch creation is pending (currently in the newly forked repo there is not that branch, since is not inherited from the parent),
+	// we return 202 Accepted (GitRepository created but the requested default branch is not yet created)
+	// this is to indicate that the user must create the branch first in the newly forked repository,
+	// then the gitrepository-controller will update the default branch later
+	// But for now, the default branch is the one of the parent repository
 	if defaultBranchCreationPending {
 		h.Log.Printf("Branch '%s' creation is pending in fork repository '%s'. Returning 202 Accepted", requestedDefaultBranch, createdRepo.Name)
 		h.writeJSONResponse(w, http.StatusAccepted, responseBody)
