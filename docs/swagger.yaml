@@ -154,6 +154,329 @@ definitions:
       id:
         type: string
     type: object
+  pipeline.Build:
+    properties:
+      buildNumber:
+        type: string
+      finishTime:
+        type: string
+      id:
+        type: integer
+      queueTime:
+        type: string
+      result:
+        type: string
+      startTime:
+        type: string
+      status:
+        type: string
+      uri:
+        type: string
+      url:
+        type: string
+    type: object
+  pipeline.BuildDefinitionReference:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      path:
+        type: string
+      project:
+        $ref: '#/definitions/pipeline.ProjectReference'
+      type:
+        type: string
+      uri:
+        type: string
+      url:
+        type: string
+    type: object
+  pipeline.BuildDefinitionVariable:
+    properties:
+      allowOverride:
+        type: boolean
+      isSecret:
+        type: boolean
+      value:
+        type: string
+    type: object
+  pipeline.BuildMetric:
+    properties:
+      name:
+        type: string
+      scope:
+        type: string
+      value: {}
+    type: object
+  pipeline.BuildRepository:
+    properties:
+      id:
+        description: Required
+        type: string
+      type:
+        description: 'Required - enum: unknown, gitHub, azureReposGit, azureReposGitHyphenated'
+        type: string
+    type: object
+  pipeline.CreatePipelineConfigurationParametersComplete:
+    properties:
+      path:
+        type: string
+      repository:
+        allOf:
+        - $ref: '#/definitions/pipeline.BuildRepository'
+        description: Required
+      type:
+        description: 'Required - enum: unknown, yaml, designerJson, justInTime, designerHyphenJson'
+        type: string
+    type: object
+  pipeline.CreatePipelineRequest:
+    properties:
+      configuration:
+        allOf:
+        - $ref: '#/definitions/pipeline.CreatePipelineConfigurationParametersComplete'
+        description: Required
+      folder:
+        type: string
+      name:
+        description: Required
+        type: string
+    type: object
+  pipeline.CreatePipelineResponse:
+    properties:
+      _links:
+        $ref: '#/definitions/pipeline.ReferenceLinks'
+      configuration:
+        $ref: '#/definitions/pipeline.PipelineConfiguration'
+      folder:
+        description: Embedded fields from PipelineBase
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      revision:
+        type: integer
+      url:
+        type: string
+    type: object
+  pipeline.GetPipelineResponse:
+    properties:
+      _links:
+        $ref: '#/definitions/pipeline.ReferenceLinks'
+      configuration:
+        $ref: '#/definitions/pipeline.PipelineConfiguration'
+      folder:
+        description: Embedded fields from PipelineBase
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      revision:
+        type: integer
+      url:
+        type: string
+    type: object
+  pipeline.PipelineConfiguration:
+    properties:
+      type:
+        description: 'enum: unknown, yaml, designerJson, justInTime, designerHyphenJson'
+        type: string
+    type: object
+  pipeline.ProcessParameterInput:
+    properties:
+      defaultValue:
+        type: string
+      helpMarkDown:
+        type: string
+      label:
+        type: string
+      name:
+        type: string
+      properties:
+        additionalProperties: true
+        type: object
+      required:
+        type: boolean
+      type:
+        type: string
+      visibleRule:
+        type: string
+    type: object
+  pipeline.ProcessParameters:
+    properties:
+      inputs:
+        items:
+          $ref: '#/definitions/pipeline.ProcessParameterInput'
+        type: array
+    type: object
+  pipeline.ProjectReference:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      lastUpdateTime:
+        type: string
+      name:
+        type: string
+      revision:
+        type: integer
+      state:
+        type: string
+      url:
+        type: string
+      visibility:
+        type: string
+    type: object
+  pipeline.ReferenceLinks:
+    properties:
+      links:
+        additionalProperties: true
+        type: object
+    type: object
+  pipeline.UpdatePipelineRequest:
+    properties:
+      badgeEnabled:
+        type: boolean
+      buildNumberFormat:
+        type: string
+      comment:
+        type: string
+      id:
+        type: integer
+      name:
+        description: Required
+        type: string
+      path:
+        type: string
+      process: {}
+      processParameters:
+        $ref: '#/definitions/pipeline.ProcessParameters'
+      properties:
+        additionalProperties: true
+        type: object
+      quality:
+        type: string
+      repository:
+        $ref: '#/definitions/pipeline.BuildRepository'
+      revision:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      type:
+        type: string
+      variableGroups:
+        items:
+          $ref: '#/definitions/pipeline.VariableGroup'
+        type: array
+      variables:
+        additionalProperties:
+          $ref: '#/definitions/pipeline.BuildDefinitionVariable'
+        type: object
+    type: object
+  pipeline.UpdatePipelineResponse:
+    properties:
+      _links:
+        $ref: '#/definitions/pipeline.ReferenceLinks'
+      badgeEnabled:
+        type: boolean
+      buildNumberFormat:
+        type: string
+      comment:
+        type: string
+      createdDate:
+        type: string
+      dateCreated:
+        type: string
+      draftOf:
+        $ref: '#/definitions/pipeline.BuildDefinitionReference'
+      drafts:
+        items:
+          $ref: '#/definitions/pipeline.BuildDefinitionReference'
+        type: array
+      dropLocation:
+        type: string
+      id:
+        type: integer
+      jobAuthorizationScope:
+        type: string
+      jobCancelTimeoutInMinutes:
+        type: integer
+      jobTimeoutInMinutes:
+        type: integer
+      latestBuild:
+        $ref: '#/definitions/pipeline.Build'
+      latestCompletedBuild:
+        $ref: '#/definitions/pipeline.Build'
+      metrics:
+        items:
+          $ref: '#/definitions/pipeline.BuildMetric'
+        type: array
+      name:
+        type: string
+      path:
+        type: string
+      process: {}
+      processParameters:
+        $ref: '#/definitions/pipeline.ProcessParameters'
+      project:
+        $ref: '#/definitions/pipeline.ProjectReference'
+      properties:
+        additionalProperties: true
+        type: object
+      quality:
+        type: string
+      repository:
+        $ref: '#/definitions/pipeline.BuildRepository'
+      revision:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      type:
+        type: string
+      uri:
+        type: string
+      url:
+        type: string
+      variableGroups:
+        items:
+          $ref: '#/definitions/pipeline.VariableGroup'
+        type: array
+      variables:
+        additionalProperties:
+          $ref: '#/definitions/pipeline.BuildDefinitionVariable'
+        type: object
+    type: object
+  pipeline.Variable:
+    properties:
+      allowOverride:
+        type: boolean
+      isSecret:
+        type: boolean
+      value:
+        type: string
+    type: object
+  pipeline.VariableGroup:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+      variables:
+        additionalProperties:
+          $ref: '#/definitions/pipeline.Variable'
+        type: object
+    type: object
   pipelinepermission.IdentityRef:
     properties:
       _links:
@@ -247,6 +570,186 @@ info:
   title: Azure DevOps Plugin API for Krateo Operator Generator (KOG)
   version: "1.0"
 paths:
+  /api/{organization}/{project}/pipelines/:
+    post:
+      consumes:
+      - application/json
+      description: Create a new Pipeline
+      operationId: post-pipeline
+      parameters:
+      - description: Organization name
+        in: path
+        name: organization
+        required: true
+        type: string
+      - description: Project ID or name
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: API version (e.g., 7.2-preview.1)
+        in: query
+        name: api-version
+        required: true
+        type: string
+      - description: Basic Auth header (Basic <base64-encoded-username:password>)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Pipeline creation request body
+        in: body
+        name: pipelineCreate
+        required: true
+        schema:
+          $ref: '#/definitions/pipeline.CreatePipelineRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Pipeline details
+          schema:
+            $ref: '#/definitions/pipeline.CreatePipelineResponse'
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+      summary: Create a new Pipeline
+  /api/{organization}/{project}/pipelines/{id}:
+    delete:
+      description: Delete a pipeline using build definitions endpoint
+      operationId: delete-pipeline
+      parameters:
+      - description: Organization name
+        in: path
+        name: organization
+        required: true
+        type: string
+      - description: Project name or ID
+        in: path
+        name: project
+        required: true
+        type: string
+      - description: Pipeline ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Basic Auth header (Basic <base64-encoded-username:password>)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content - Pipeline deleted successfully
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Delete a pipeline
+    get:
+      description: Get
+      operationId: get-pipeline
+      parameters:
+      - description: Organization name
+        in: path
+        name: organization
+        required: true
+        type: string
+      - description: Project name or ID
+        in: path
+        name: project
+        required: true
+        type: string
+      - description: Pipeline ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: API version (e.g., 7.2-preview.1)
+        in: query
+        name: api-version
+        required: true
+        type: string
+      - description: Basic Auth header (Basic <base64-encoded-username:password>)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pipeline details
+          schema:
+            $ref: '#/definitions/pipeline.GetPipelineResponse'
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+      summary: Get a pipeline
+    put:
+      consumes:
+      - application/json
+      description: Update a pipeline using build definitions endpoint
+      operationId: put-pipeline
+      parameters:
+      - description: Organization name
+        in: path
+        name: organization
+        required: true
+        type: string
+      - description: Project name or ID
+        in: path
+        name: project
+        required: true
+        type: string
+      - description: Pipeline ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: API version (e.g., 7.2-preview.1)
+        in: query
+        name: api-version
+        required: true
+        type: string
+      - description: Basic Auth header (Basic <base64-encoded-username:password>)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Pipeline update request body
+        in: body
+        name: pipelineUpdate
+        required: true
+        schema:
+          $ref: '#/definitions/pipeline.UpdatePipelineRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated pipeline details
+          schema:
+            $ref: '#/definitions/pipeline.UpdatePipelineResponse'
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Update a pipeline
   /api/{organization}/{project}/pipelines/pipelinepermissions/{resourceType}/{resourceId}:
     get:
       description: Get
