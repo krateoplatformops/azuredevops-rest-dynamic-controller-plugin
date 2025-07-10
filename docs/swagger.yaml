@@ -559,6 +559,10 @@ paths:
             gitrepository-controller will update the default branch later)
           schema:
             $ref: '#/definitions/gitrepository.CreateRepositoryResponse'
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
       summary: Create a new GitRepository on Azure DevOps
 schemes:
 - http

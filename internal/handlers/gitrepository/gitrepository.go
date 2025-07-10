@@ -95,6 +95,8 @@ func (h *baseHandler) writeJSONResponse(w http.ResponseWriter, statusCode int, b
 // @Produce json
 // @Success 201 {object} CreateRepositoryResponse "GitRepository details"
 // @Success 202 {object} CreateRepositoryResponse "GitRepository details (repo created but creation of branch deisgnated as default branch is pending, user must create it, then the gitrepository-controller will update the default branch later)"
+// @Failure 400 "Bad Request"
+// @Failure 401 "Unauthorized"
 // @Router /api/{organization}/{projectId}/git/repositories [post]
 func (h *postHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	organization := r.PathValue("organization")
@@ -160,8 +162,12 @@ func (h *postHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return // Stop execution if this validation failed
 	}
 
-	// Auto-initialize logic if needed
-	h.autoInit(&createRequest, needsDefaultBranchUpdate, requestedDefaultBranch)
+	// For new repositories (not forks), if a default branch is specified, initialization must be explicitly enabled.
+	// Since Azure DevOps does not allow setting a default branch on an uninitialized repository (empty repository)
+	if createRequest.ParentRepository == nil && needsDefaultBranchUpdate && !createRequest.Initialize {
+		h.writeErrorResponse(w, http.StatusBadRequest, "When specifying a 'defaultBranch' for a new repository, 'initialize' must be set to true")
+		return
+	}
 
 	// Create the repository request body for Azure DevOps (without defaultBranch)
 	azureDevOpsRequest := GitRepositoryCreateOptionsMinimal{
@@ -226,7 +232,7 @@ func (h *postHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// Repository is not initialized and is not a fork
 			// Auto-init should have been enabled if a custom default branch was requested
 			// If we reach here, something probably somewhat unexpected happened
-			h.Log.Printf("Auto-init logic should have enabled initialization for repository '%s' with custom default branch '%s' but somehow it was not enabled. This is unexpected behavior", createdRepo.Name, requestedDefaultBranch)
+			h.Log.Printf("Repository '%s' was created without initialization. A custom default branch was requested ('%s'), but this should have been blocked by validation.", createdRepo.Name, requestedDefaultBranch)
 			if needsDefaultBranchUpdate {
 				h.Log.Printf("Cannot set default branch '%s' on uninitialized repository '%s' - no branches exist", requestedDefaultBranch, createdRepo.Name)
 				h.writeErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Cannot set default branch '%s' on uninitialized repository '%s' - no branches exist", requestedDefaultBranch, createdRepo.Name))
@@ -377,7 +383,6 @@ func (h *postHandler) updateRepositoryDefaultBranch(organization, projectId, rep
 // Helper functions in the postHandler for:
 // - repository initialization
 // - branch existence check
-// - setting up auto-initialization logic
 // - validating sourceRef
 
 func (h *postHandler) initializeRepository(organization, projectId, repositoryId, apiVersion, authHeader, branchToInit string) error {
@@ -479,44 +484,6 @@ func (h *postHandler) branchExists(organization, projectId, repositoryId, branch
 	h.Log.Printf("Branch existence check response: %s", string(body))
 
 	return len(refsResponse.Value) > 0, nil
-}
-
-func (h *postHandler) autoInit(createRequest *CreateRepositoryRequest, needsDefaultBranchUpdate bool, requestedDefaultBranch string) {
-	h.Log.Printf("Auto-initialization logic for repository '%s' with custom default branch '%s'", createRequest.Name, requestedDefaultBranch)
-
-	if createRequest.ParentRepository == nil {
-		// This is a new repository (not a fork)
-		if needsDefaultBranchUpdate {
-			// Custom default branch specified for new repo
-			if !createRequest.Initialize {
-				// User didn't explicitly enable initialization, but they want a custom default branch
-				// We need to initialize to create the branch
-				h.Log.Printf("Custom default branch '%s' specified without initialization - auto-enabling initialization", requestedDefaultBranch)
-				createRequest.Initialize = true
-			} else {
-				h.Log.Printf("Custom default branch '%s' specified with initialization already enabled", requestedDefaultBranch)
-			}
-		} else {
-			// No custom default branch specified
-			if createRequest.Initialize {
-				h.Log.Print("Repository initialization enabled without custom default branch - will use Azure DevOps default")
-			} else {
-				h.Log.Print("Repository will be created empty (no initialization, no custom default branch)")
-			}
-		}
-	} else {
-		// This is a fork
-		if needsDefaultBranchUpdate {
-			h.Log.Printf("Fork repository requested with custom default branch '%s' - will validate branch exists in fork", requestedDefaultBranch)
-		}
-
-		// For forks, we don't auto-enable initialization since the repo gets branches from parent
-		if createRequest.Initialize {
-			h.Log.Print("Warning: Initialize flag is set for fork repository - already has branches from parent")
-			// We can ignore this since forks already have branches from the parent
-		}
-	}
-	h.Log.Printf("Auto-initialization logic complete for repository '%s': Initialize=%t, CustomDefaultBranch='%s'", createRequest.Name, createRequest.Initialize, requestedDefaultBranch)
 }
 
 func (h *postHandler) validateSourceRef(organization string, projectId string, createRequest *CreateRepositoryRequest, sourceRef, apiVersion, authHeader string, w http.ResponseWriter) (bool, error) {

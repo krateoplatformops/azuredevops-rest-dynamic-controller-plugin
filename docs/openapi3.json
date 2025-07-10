@@ -107,6 +107,14 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {}
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {}
           }
         },
         "x-codegen-request-body-name": "gitrepositoryCreate"
