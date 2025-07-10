@@ -231,6 +231,8 @@ DELETE /api/{organization}/{project}/pipelines/{id}
 
 </details>
 
+---
+
 ### PipelinePermission
 
 #### Get PipelinePermission
@@ -312,6 +314,8 @@ GET /api/{organization}/{project}/pipelines/pipelinepermissions/{resourceType}/{
 }
 ```
 </details>
+
+---
 
 ### GitRepository
 
