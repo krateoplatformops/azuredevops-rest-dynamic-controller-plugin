@@ -77,7 +77,7 @@ GET /api/{organization}/{project}/pipelines/{id}
     },
     "type":"yaml"
   },
-  "folder":"test-folder-kog",
+  "folder":"test-folder-kog", // Adjusted field
   "id":49,
   "name":"test-pipeline-kog-1",
   "revision":1,
@@ -88,31 +88,94 @@ GET /api/{organization}/{project}/pipelines/{id}
 </details>
 </details>
 
-
-
-
-
-
-<details>
-<summary><b>Create Pipeline (click to expand)</b></summary>
-<br/>
-</details>
-
-
-
 <details>
 <summary><b>Update Pipeline (click to expand)</b></summary>
 <br/>
 
+**Description**:
+This endpoint updates an existing pipeline in the specified Azure DevOps project.
+In particular, it allows you to change the pipeline's name, folder, and configuration details such as the path to the configuration file.
 
-Azure DevOps returns different repository.type values depending on the endpoint:
+**Why This Endpoint Exists**:
+- The standard Azure DevOps REST API does not have a `/pipelines/{id}` endpoint for updating pipelines.
+- In order to update a pipeline, you need to use the `/build/definitions/{id}` endpoint, which is not consistent with the `/pipelines/{id}` endpoint used for retrieving pipelines.
+- This endpoint provides a consistent way to update pipelines using the `/pipelines/{id}` endpoint and the same request body schema as the `POST /pipelines` endpoint of Azure DevOps REST API.
+- In particular, the plugin creates a `BuildDefinitionMinimal` object starting from the request body and then performs a `PUT` request to the `/build/definitions/{id}` endpoint of Azure DevOps REST API.
+- A needed adjustement related to the repository type is performed, as the Azure DevOps REST API returns different values for the `repository.type` field depending on the endpoint used to retrieve the pipeline. For instance, even if a pipeline is linked to a `azureReposGit` repository, the `/build/definitions/{id}` endpoint returns `repository.type` as `TfsGit`, while the `/pipelines/{id}` endpoint returns `repository.type` as `azureReposGit`. 
 
-Endpoint	repository.type Value
-/build/definitions/{id} (classic)	"TfsGit"
-/pipelines/{id} (YAML pipelines)	"azureReposGit"
+>[!NOTE]  
+> Currently, the `api-version` parameter is passed as an environment variable to the plugin by the related Helm chart.
+
+<details><summary><b>Request</b></summary>
+<br/>
+
+```http
+PUT /api/{organization}/{project}/pipelines/{id}
+```
+
+**Path parameters**:
+- `organization` (string, required): The name of the Azure DevOps organization.
+- `project` (string, required): The name of the Azure DevOps project.
+- `id` (string, required): The ID of the pipeline to update.
+
+**Request body example**:
+```json
+{
+  "configuration":{
+    "path":"pipelines/inner_folder/another_config.yml",
+    "repository":{
+      "id":"string",
+      "type":"azureReposGit"
+    },
+    "type":"yaml"
+  },
+  "folder":"test-folder-kog",
+  "name":"test-pipeline-kog-1-v2",
+  "revision":"3"
+}
+```
 
 </details>
 
+<details><summary><b>Response</b></summary>
+<br/>
+
+**Response status codes**:
+- `200 OK`: The pipeline was successfully updated.
+- `400 Bad Request`: The request body is invalid or the pipeline ID does not exist.
+- `401 Unauthorized`: The request is not authorized. Ensure that the `Authorization` header is set correctly.
+- `404 Not Found`: The specified pipeline does not exist in the project.
+- `500 Internal Server Error`: An unexpected error occurred while processing the request.
+
+**Response body example**:
+```json
+{
+  "_links":{
+    "self":{
+      "href":"string"
+      },
+    "web":{
+      "href":"string"
+    }
+  },
+  "configuration":{
+    "path":"pipelines/test_inner_pipeline.yml",
+    "repository":{
+      "id":"string",
+      "type":"azureReposGit"
+    },
+    "type":"yaml"
+  },
+  "folder":"test-folder-kog", // Adjusted field
+  "id":49,
+  "name":"test-pipeline-kog-1",
+  "revision":1,
+  "url":"string"
+}
+```
+
+</details>
+</details>
 
 
 ### PipelinePermission
