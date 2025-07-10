@@ -96,6 +96,7 @@ GET /api/{organization}/{project}/pipelines/{id}
 <details>
 <summary><b>Create Pipeline (click to expand)</b></summary>
 <br/>
+</details>
 
 
 
@@ -110,7 +111,7 @@ Endpoint	repository.type Value
 /build/definitions/{id} (classic)	"TfsGit"
 /pipelines/{id} (YAML pipelines)	"azureReposGit"
 
-
+</details>
 
 
 
