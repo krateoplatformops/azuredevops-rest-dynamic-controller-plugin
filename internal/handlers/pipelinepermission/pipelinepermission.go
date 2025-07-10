@@ -134,6 +134,11 @@ func (h *getHandler) getPipelinePermissionAndRespond(w http.ResponseWriter, orga
 	// Check for non-200 status codes after reading the body
 	if resp.StatusCode != http.StatusOK {
 		h.Log.Printf("Azure DevOps API returned a non-200 status: %d. Body: %s", resp.StatusCode, string(body))
+		if resp.StatusCode == http.StatusNotFound {
+			h.writeErrorResponse(w, http.StatusNotFound, fmt.Sprintf("Pipeline permission for resource %s/%s/%s/%s not found", organization, project, resourceType, resourceId))
+			return nil
+		}
+		// For other non-200 responses, log the error and return the raw response
 		h.writeJSONResponse(w, resp.StatusCode, body)
 		return nil
 	}
