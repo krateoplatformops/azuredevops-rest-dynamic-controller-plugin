@@ -230,8 +230,8 @@ func (h *postHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// After initialization, the branch exists, so we can and go directly to setting it as default if needed
 		} else {
 			// Repository is not initialized and is not a fork
-			// Auto-init should have been enabled if a custom default branch was requested
 			// If we reach here, something probably somewhat unexpected happened
+			// since previous validation should have blocked this case
 			h.Log.Printf("Repository '%s' was created without initialization. A custom default branch was requested ('%s'), but this should have been blocked by validation.", createdRepo.Name, requestedDefaultBranch)
 			if needsDefaultBranchUpdate {
 				h.Log.Printf("Cannot set default branch '%s' on uninitialized repository '%s' - no branches exist", requestedDefaultBranch, createdRepo.Name)
