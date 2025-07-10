@@ -93,6 +93,8 @@ GET /api/{organization}/{project}/pipelines/{id}
 
 </details>
 
+---
+
 #### Update Pipeline
 
 **Description**:
@@ -183,6 +185,8 @@ PUT /api/{organization}/{project}/pipelines/{id}
 ```
 
 </details>
+
+---
 
 #### Delete Pipeline
 
