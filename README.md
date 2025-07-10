@@ -118,7 +118,7 @@ More precisely, it returns the list of `pipelines` that have permissions to acce
 }
 ```
 </details>
-<details>
+</details>
 
 ### GitRepository
 
