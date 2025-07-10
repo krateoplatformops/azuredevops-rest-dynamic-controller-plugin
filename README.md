@@ -46,7 +46,8 @@ Endpoint	repository.type Value
 ### PipelinePermission
 
 <details>
-<summary><b>Get PipelinePermission</b></summary>
+<summary><b>Get PipelinePermission (click to expand)</b></summary>
+<br/>
 
 ```http
 GET /api/{organization}/{project}/pipelines/pipelinepermissions/{resourceType}/{resourceId}
@@ -122,7 +123,9 @@ More precisely, it returns the list of `pipelines` that have permissions to acce
 
 ### GitRepository
 
-#### Create GitRepository
+<details>
+<summary><b>Create GitRepository (click to expand)</b></summary>
+<br/>
 
 ```http
 POST /api/{organization}/{projectId}/git/repositories
@@ -252,6 +255,7 @@ It allows you to specify the `defaultBranch` field to set the default branch of 
 }
 ```
 
+</details>
 </details>
 
 ## Swagger Documentation
