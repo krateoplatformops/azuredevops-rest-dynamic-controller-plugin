@@ -317,11 +317,14 @@ It allows you to specify the `defaultBranch` field to set the default branch of 
 
 <details>
 <summary><b>Why This Endpoint Exists</b></summary>
+<br/>
+
 - The standard Azure DevOps REST API has two different request body schemas for creating (`POST`) and updating (`PATCH`) Git repositories. In particular, the field `defaultBranch` is only available in the `PATCH` request body.
 - This endpoint allows you to create a Git repository with the `defaultBranch` field, which is not supported in the standard Azure DevOps REST API for the `POST` request body. Practially performing a `PATCH` operation on the repository immediately after creation.
 - Moreover, it allows you to initialize the repository with a first commit by setting the `initialize` field to `true`.
 - In addition, it performs additional validations related to branch existence (for forks) and repository initialization. For instance auto-initialization of the repository with a first commit on the `defaultBranch` branch when the `initialize` field is set to `false` or omitted but the `defaultBranch` field is set to a branch name.
 - Another additional validation is that it checks if the `sourceRef` branch exists in the parent repository when forking a repository. If it does not exist, it returns a `400 Bad Request` error.
+
 </details>
 
 <details>
