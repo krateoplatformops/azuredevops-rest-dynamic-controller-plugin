@@ -398,36 +398,36 @@ func TestGetHandler_ServeHTTP(t *testing.T) {
 			expectedBodyContains: `"folder":"TestFolder"`, // Should be processed to remove leading backslash
 			expectedRequestCount: 1,
 		},
-		//{
-		//	name:         "missing organization parameter",
-		//	organization: "",
-		//	project:      testProject,
-		//	pipelineID:   testPipelineID,
-		//	apiVersion:   testAPIVersion,
-		//	authHeader:   testAuthHeader,
-		//	setupMock: func(mockClient *mockHTTPClient) {
-		//		// No setup needed as validation happens before API call
-		//	},
-		//	expectedStatus:       http.StatusBadRequest,
-		//	expectedContentType:  "",
-		//	expectedBodyContains: "Organization parameter is required",
-		//	expectedRequestCount: 0,
-		//},
-		//{
-		//	name:         "missing project parameter",
-		//	organization: testOrg,
-		//	project:      "",
-		//	pipelineID:   testPipelineID,
-		//	apiVersion:   testAPIVersion,
-		//	authHeader:   testAuthHeader,
-		//	setupMock: func(mockClient *mockHTTPClient) {
-		//		// No setup needed as validation happens before API call
-		//	},
-		//	expectedStatus:       http.StatusBadRequest,
-		//	expectedContentType:  "",
-		//	expectedBodyContains: "Project parameter is required",
-		//	expectedRequestCount: 0,
-		//},
+		{
+			name:         "missing organization parameter",
+			organization: "", // This is the key for this test
+			project:      testProject,
+			pipelineID:   testPipelineID,
+			apiVersion:   testAPIVersion,
+			authHeader:   testAuthHeader,
+			setupMock: func(mockClient *mockHTTPClient) {
+				// No setup needed as validation happens before API call
+			},
+			expectedStatus:       http.StatusBadRequest,
+			expectedContentType:  "",
+			expectedBodyContains: "Organization parameter is required",
+			expectedRequestCount: 0,
+		},
+		{
+			name:         "missing project parameter",
+			organization: testOrg,
+			project:      "", // This is the key for this test
+			pipelineID:   testPipelineID,
+			apiVersion:   testAPIVersion,
+			authHeader:   testAuthHeader,
+			setupMock: func(mockClient *mockHTTPClient) {
+				// No setup needed as validation happens before API call
+			},
+			expectedStatus:       http.StatusBadRequest,
+			expectedContentType:  "",
+			expectedBodyContains: "Project parameter is required",
+			expectedRequestCount: 0,
+		},
 		{
 			name:         "missing api version parameter",
 			organization: testOrg,
@@ -469,8 +469,8 @@ func TestGetHandler_ServeHTTP(t *testing.T) {
 				mockClient.setResponse(pipelineGetURL, http.StatusNotFound, pipelineNotFoundResp)
 			},
 			expectedStatus:       http.StatusNotFound,
-			expectedContentType:  "application/json",
-			expectedBodyContains: "Pipeline not found",
+			expectedContentType:  "",
+			expectedBodyContains: fmt.Sprintf("Pipeline with ID %s not found", testPipelineID),
 			expectedRequestCount: 1,
 		},
 		{
@@ -509,31 +509,33 @@ func TestGetHandler_ServeHTTP(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
 			mockClient := newMockHTTPClient()
-			tt.setupMock(mockClient)
+			if tt.setupMock != nil {
+				tt.setupMock(mockClient)
+			}
 
 			handler := createTestGetHandler(mockClient)
 
-			// Create a proper ServeMux with the pattern matching
-			mux := http.NewServeMux()
-			mux.Handle("GET /api/{organization}/{project}/pipelines/{id}", handler)
+			// Create request
+			// We create a dummy URL because the handler gets path values from the context, not by parsing the URL itself.
+			url := fmt.Sprintf("/api/placeholder/placeholder/pipelines/placeholder?api-version=%s", tt.apiVersion)
+			req := httptest.NewRequest("GET", url, nil)
 
-			// Create request with the proper path
-			path := fmt.Sprintf("/api/%s/%s/pipelines/%s", tt.organization, tt.project, tt.pipelineID)
-			if tt.apiVersion != "" {
-				path += fmt.Sprintf("?api-version=%s", tt.apiVersion)
-			}
-			req := httptest.NewRequest("GET", path, nil)
+			// Set path values directly on the request. This is the key to making the validation tests work.
+			req.SetPathValue("organization", tt.organization)
+			req.SetPathValue("project", tt.project)
+			req.SetPathValue("id", tt.pipelineID)
+
 			if tt.authHeader != "" {
 				req.Header.Set("Authorization", tt.authHeader)
-				// Set BasicAuth for validation
+				// Set BasicAuth for validation check inside the handler
 				req.SetBasicAuth(testUsername, testPassword)
 			}
 
 			// Create response recorder
 			rr := httptest.NewRecorder()
 
-			// Execute through the mux so path values are properly set
-			mux.ServeHTTP(rr, req)
+			// Execute the handler directly
+			handler.ServeHTTP(rr, req)
 
 			// Verify status code
 			if rr.Code != tt.expectedStatus {
@@ -543,7 +545,7 @@ func TestGetHandler_ServeHTTP(t *testing.T) {
 			// Verify content type if expected
 			if tt.expectedContentType != "" {
 				contentType := rr.Header().Get("Content-Type")
-				if contentType != tt.expectedContentType {
+				if !strings.HasPrefix(contentType, tt.expectedContentType) {
 					t.Errorf("handler returned wrong content type: got %v want %v", contentType, tt.expectedContentType)
 				}
 			}
@@ -628,8 +630,8 @@ func TestDeleteHandler_ServeHTTP(t *testing.T) {
 				mockClient.setResponse(pipelineDeleteURL, http.StatusNotFound, pipelineNotFoundResp)
 			},
 			expectedStatus:       http.StatusNotFound,
-			expectedContentType:  "application/json",
-			expectedBodyContains: "Pipeline not found",
+			expectedContentType:  "",
+			expectedBodyContains: fmt.Sprintf("Pipeline with ID %s not found", testPipelineID),
 			expectedRequestCount: 1,
 		},
 		{
@@ -680,28 +682,30 @@ func TestDeleteHandler_ServeHTTP(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
 			mockClient := newMockHTTPClient()
-			tt.setupMock(mockClient)
+			if tt.setupMock != nil {
+				tt.setupMock(mockClient)
+			}
 
 			handler := createTestDeleteHandler(mockClient)
 
-			// Create a proper ServeMux with the pattern matching
-			mux := http.NewServeMux()
-			mux.Handle("DELETE /api/{organization}/{project}/pipelines/{id}", handler)
+			// Create request
+			req := httptest.NewRequest("DELETE", "/api/placeholder", nil)
 
-			// Create request with the proper path
-			path := fmt.Sprintf("/api/%s/%s/pipelines/%s", tt.organization, tt.project, tt.pipelineID)
-			req := httptest.NewRequest("DELETE", path, nil)
+			// Set path values
+			req.SetPathValue("organization", tt.organization)
+			req.SetPathValue("project", tt.project)
+			req.SetPathValue("id", tt.pipelineID)
+
 			if tt.authHeader != "" {
 				req.Header.Set("Authorization", tt.authHeader)
-				// Set BasicAuth for validation
 				req.SetBasicAuth(testUsername, testPassword)
 			}
 
 			// Create response recorder
 			rr := httptest.NewRecorder()
 
-			// Execute through the mux so path values are properly set
-			mux.ServeHTTP(rr, req)
+			// Execute
+			handler.ServeHTTP(rr, req)
 
 			// Verify status code
 			if rr.Code != tt.expectedStatus {
@@ -711,7 +715,7 @@ func TestDeleteHandler_ServeHTTP(t *testing.T) {
 			// Verify content type if expected
 			if tt.expectedContentType != "" {
 				contentType := rr.Header().Get("Content-Type")
-				if contentType != tt.expectedContentType {
+				if !strings.HasPrefix(contentType, tt.expectedContentType) {
 					t.Errorf("handler returned wrong content type: got %v want %v", contentType, tt.expectedContentType)
 				}
 			}
@@ -737,79 +741,201 @@ func TestDeleteHandler_ServeHTTP(t *testing.T) {
 	}
 }
 
-//
 // Test PUT handler
-//func TestPutHandler_ServeHTTP(t *testing.T) {
-//	// Set environment variable for testing
-//	os.Setenv("BUILD_DEFINITIONS_API_VERSION", buildAPIVersion)
-//	defer os.Unsetenv("BUILD_DEFINITIONS_API_VERSION")
-//
-//	tests := []struct {
-//		name                 string
-//		organization         string
-//		project              string
-//		pipelineID           string
-//		authHeader           string
-//		requestBody          string
-//		setupMock            func(*mockHTTPClient)
-//		expectedStatus       int
-//		expectedContentType  string
-//		expectedBodyContains string
-//		expectedRequestCount int
-//		verifyRequests       func(t *testing.T, mockClient *mockHTTPClient)
-//	}{
-//		{
-//			name:         "successful pipeline update",
-//			organization: testOrg,
-//			project:      testProject,
-//			pipelineID:   testPipelineID,
-//			authHeader:   testAuthHeader,
-//			requestBody:  validPutRequestBody,
-//			setupMock: func(mockClient *mockHTTPClient) {
-//				mockClient.setResponse(pipelinePutURL, http.StatusOK, validBuildDefinitionResp)
-//			},
-//			expectedStatus:       http.StatusOK,
-//			expectedContentType:  "application/json",
-//			expectedBodyContains: `"id":123`,
-//			expectedRequestCount: 1,
-//			verifyRequests: func(t *testing.T, mockClient *mockHTTPClient) {
-//				if mockClient.getRequestCount() != 1 {
-//					t.Errorf("Expected 1 request, got %d", mockClient.getRequestCount())
-//				}
-//
-//				req := mockClient.getLastRequest()
-//				if req.URL.String() != pipelinePutURL {
-//					t.Errorf("Request URL = %s, want %s", req.URL.String(), pipelinePutURL)
-//				}
-//				if req.Header.Get("Authorization") != testAuthHeader {
-//					t.Errorf("Request Authorization header = %s, want %s", req.Header.Get("Authorization"), testAuthHeader)
-//				}
-//				if req.Method != "PUT" {
-//					t.Errorf("Request Method = %s, want PUT", req.Method)
-//				}
-//				if req.Header.Get("Content-Type") != "application/json" {
-//					t.Errorf("Request Content-Type header = %s, want application/json", req.Header.Get("Content-Type"))
-//				}
-//			},
-//		},
-//		{
-//			name:         "pipeline not found for update",
-//			organization: testOrg,
-//			project:      testProject,
-//			pipelineID:   testPipelineID,
-//			authHeader:   testAuthHeader,
-//			requestBody:  validPutRequestBody,
-//			setupMock: func(mockClient *mockHTTPClient) {
-//				mockClient.setResponse(pipelinePutURL, http.StatusNotFound, pipelineNotFoundResp)
-//			},
-//			expectedStatus:       http.StatusInternalServerError,
-//			expectedContentType:  "",
-//			expectedBodyContains: "Failed to update pipeline",
-//			expectedRequestCount: 1,
-//		},
-//		{
-//			name:         "unauthorized update",
-//			organization: testOrg,
-//			project:      testProject,
-//			pipelineID:   testPipelineID,
-//			authHeader:   test
+func TestPutHandler_ServeHTTP(t *testing.T) {
+	// Set environment variable for testing
+	os.Setenv("BUILD_DEFINITIONS_API_VERSION", buildAPIVersion)
+	defer os.Unsetenv("BUILD_DEFINITIONS_API_VERSION")
+
+	tests := []struct {
+		name                 string
+		organization         string
+		project              string
+		pipelineID           string
+		authHeader           string
+		requestBody          string
+		setupMock            func(*mockHTTPClient)
+		expectedStatus       int
+		expectedContentType  string
+		expectedBodyContains string
+		expectedRequestCount int
+		verifyRequests       func(t *testing.T, mockClient *mockHTTPClient)
+	}{
+		{
+			name:         "successful pipeline update",
+			organization: testOrg,
+			project:      testProject,
+			pipelineID:   testPipelineID,
+			authHeader:   testAuthHeader,
+			requestBody:  validPutRequestBody,
+			setupMock: func(mockClient *mockHTTPClient) {
+				mockClient.setResponse(pipelinePutURL, http.StatusOK, validBuildDefinitionResp)
+			},
+			expectedStatus:       http.StatusOK,
+			expectedContentType:  "application/json",
+			expectedBodyContains: `"id":123`,
+			expectedRequestCount: 1,
+			verifyRequests: func(t *testing.T, mockClient *mockHTTPClient) {
+				req := mockClient.getLastRequest()
+				if req.URL.String() != pipelinePutURL {
+					t.Errorf("Request URL = %s, want %s", req.URL.String(), pipelinePutURL)
+				}
+				if req.Method != "PUT" {
+					t.Errorf("Request Method = %s, want PUT", req.Method)
+				}
+				body, _ := io.ReadAll(req.Body)
+				// Check for a key part of the transformed request
+				if !strings.Contains(string(body), `"name":"updated-pipeline"`) {
+					t.Errorf("Request body does not contain expected name. Got: %s", string(body))
+				}
+				if !strings.Contains(string(body), `"id":123`) {
+					t.Errorf("Request body does not contain expected id. Got: %s", string(body))
+				}
+			},
+		},
+		{
+			name:                 "successful update with folder processing",
+			organization:         testOrg,
+			project:              testProject,
+			pipelineID:           testPipelineID,
+			authHeader:           testAuthHeader,
+			requestBody:          validPutRequestBody,
+			setupMock: func(mockClient *mockHTTPClient) {
+				// The response from the API has a path with a leading backslash
+				mockClient.setResponse(pipelinePutURL, http.StatusOK, validBuildDefinitionResp)
+			},
+			expectedStatus:       http.StatusOK,
+			expectedContentType:  "application/json",
+			// The final response to the client should have the backslash removed.
+			expectedBodyContains: `"folder":"TestFolder"`,
+			expectedRequestCount: 1,
+		},
+		{
+			name:                 "missing authorization header",
+			organization:         testOrg,
+			project:              testProject,
+			pipelineID:           testPipelineID,
+			authHeader:           "",
+			requestBody:          validPutRequestBody,
+			setupMock:            nil,
+			expectedStatus:       http.StatusUnauthorized,
+			expectedBodyContains: "Request rejected due to missing or invalid Basic authentication",
+			expectedRequestCount: 0,
+		},
+		{
+			name:                 "invalid request body - bad json",
+			organization:         testOrg,
+			project:              testProject,
+			pipelineID:           testPipelineID,
+			authHeader:           testAuthHeader,
+			requestBody:          `{"name": "test"`,
+			setupMock:            nil,
+			expectedStatus:       http.StatusBadRequest,
+			expectedBodyContains: "Invalid JSON in request body",
+			expectedRequestCount: 0,
+		},
+		{
+			name:                 "invalid pipeline id - not a number",
+			organization:         testOrg,
+			project:              testProject,
+			pipelineID:           "not-a-number",
+			authHeader:           testAuthHeader,
+			requestBody:          validPutRequestBody,
+			setupMock:            nil,
+			expectedStatus:       http.StatusBadRequest,
+			expectedBodyContains: "Invalid pipeline ID: not-a-number",
+			expectedRequestCount: 0,
+		},
+		{
+			name:         "azure devops returns 404",
+			organization: testOrg,
+			project:      testProject,
+			pipelineID:   testPipelineID,
+			authHeader:   testAuthHeader,
+			requestBody:  validPutRequestBody,
+			setupMock: func(mockClient *mockHTTPClient) {
+				mockClient.setResponse(pipelinePutURL, http.StatusNotFound, pipelineNotFoundResp)
+			},
+			expectedStatus:       http.StatusNotFound,
+			expectedContentType:  "",
+			expectedBodyContains: fmt.Sprintf("Pipeline with ID %s not found", testPipelineID),
+			expectedRequestCount: 1,
+		},
+		{
+			name:         "network error",
+			organization: testOrg,
+			project:      testProject,
+			pipelineID:   testPipelineID,
+			authHeader:   testAuthHeader,
+			requestBody:  validPutRequestBody,
+			setupMock: func(mockClient *mockHTTPClient) {
+				mockClient.setError(pipelinePutURL, fmt.Errorf("network error"))
+			},
+			expectedStatus:       http.StatusInternalServerError,
+			expectedBodyContains: "Failed to update pipeline",
+			expectedRequestCount: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup
+			mockClient := newMockHTTPClient()
+			if tt.setupMock != nil {
+				tt.setupMock(mockClient)
+			}
+
+			handler := createTestPutHandler(mockClient)
+
+			// Create request
+			req := httptest.NewRequest("PUT", "/api/placeholder", strings.NewReader(tt.requestBody))
+
+			// Set path values
+			req.SetPathValue("organization", tt.organization)
+			req.SetPathValue("project", tt.project)
+			req.SetPathValue("id", tt.pipelineID)
+
+			if tt.authHeader != "" {
+				req.Header.Set("Authorization", tt.authHeader)
+				req.SetBasicAuth(testUsername, testPassword)
+			}
+
+			// Create response recorder
+			rr := httptest.NewRecorder()
+
+			// Execute
+			handler.ServeHTTP(rr, req)
+
+			// Verify status code
+			if rr.Code != tt.expectedStatus {
+				t.Errorf("handler returned wrong status code: got %v want %v", rr.Code, tt.expectedStatus)
+			}
+
+			// Verify content type if expected
+			if tt.expectedContentType != "" {
+				contentType := rr.Header().Get("Content-Type")
+				if !strings.HasPrefix(contentType, tt.expectedContentType) {
+					t.Errorf("handler returned wrong content type: got %v want %v", contentType, tt.expectedContentType)
+				}
+			}
+
+			// Verify response body
+			if tt.expectedBodyContains != "" {
+				body := rr.Body.String()
+				if !strings.Contains(body, tt.expectedBodyContains) {
+					t.Errorf("handler response body does not contain expected content.\nGot: %s\nWant to contain: %s", body, tt.expectedBodyContains)
+				}
+			}
+
+			// Verify request count
+			if mockClient.getRequestCount() != tt.expectedRequestCount {
+				t.Errorf("expected %d requests, got %d", tt.expectedRequestCount, mockClient.getRequestCount())
+			}
+
+			// Run custom request verification
+			if tt.verifyRequests != nil {
+				tt.verifyRequests(t, mockClient)
+			}
+		})
+	}
+}

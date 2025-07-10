@@ -3,6 +3,7 @@ package pipeline
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/internal/handlers"
 )
+
+var ErrPipelineNotFound = errors.New("pipeline not found")
 
 // Handler constructors
 func GetPipeline(opts handlers.HandlerOptions) handlers.Handler {
@@ -228,7 +231,11 @@ func (h *getHandler) getPipelineAndRespond(w http.ResponseWriter, organization, 
 	// Check for non-200 status codes after reading the body
 	if resp.StatusCode != http.StatusOK {
 		h.Log.Printf("Azure DevOps API returned a non-200 status: %d. Body: %s", resp.StatusCode, string(body))
-		h.writeJSONResponse(w, resp.StatusCode, body)
+		if resp.StatusCode == http.StatusNotFound {
+			h.writeErrorResponse(w, http.StatusNotFound, fmt.Sprintf("Pipeline with ID %s not found", id))
+		} else {
+			h.writeJSONResponse(w, resp.StatusCode, body)
+		}
 		return nil
 	}
 
@@ -452,8 +459,7 @@ func (h *deleteHandler) deletePipelineAndRespond(w http.ResponseWriter, organiza
 
 	// Handle other response codes
 	if resp.StatusCode == http.StatusNotFound {
-		h.Log.Printf("Pipeline with ID %s not found", id)
-		h.writeJSONResponse(w, http.StatusNotFound, body)
+		h.writeErrorResponse(w, http.StatusNotFound, fmt.Sprintf("Pipeline with ID %s not found", id))
 		return nil
 	}
 
@@ -578,6 +584,11 @@ func (h *putHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Update Pipeline
 	updatedPipeline, err := h.updatePipeline(organization, project, id, apiVersion, authHeader, buildDefinitionMinimal)
 	if err != nil {
+		// Check if the error is a pipeline not found error
+		if errors.Is(err, ErrPipelineNotFound) {
+			h.writeErrorResponse(w, http.StatusNotFound, fmt.Sprintf("Pipeline with ID %s not found", id))
+			return
+		}
 		h.writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update pipeline: %v", err))
 		return
 	}
@@ -645,9 +656,13 @@ func (h *putHandler) updatePipeline(organization, project, id, apiVersion, authH
 		return nil, fmt.Errorf("failed to read update pipeline response: %w", err)
 	}
 
-	// Check for successful update (200 OK)
+	// Check for non-OK status codes
 	if resp.StatusCode != http.StatusOK {
 		h.Log.Printf("Azure DevOps API returned non-200 status for pipeline update: %d. Body: %s", resp.StatusCode, string(body))
+		// Special handling for 404 Not Found
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, ErrPipelineNotFound
+		}
 		return nil, fmt.Errorf("azure devops API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
