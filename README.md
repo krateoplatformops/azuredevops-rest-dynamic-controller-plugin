@@ -104,7 +104,6 @@ In particular, it allows you to change the pipeline's name, folder, and configur
 - A needed adjustement related to the repository type is performed, as the Azure DevOps REST API returns different values for the `repository.type` field depending on the endpoint used to retrieve the pipeline. For instance, even if a pipeline is linked to a `azureReposGit` repository, the `/build/definitions/{id}` endpoint returns `repository.type` as `TfsGit`, while the `/pipelines/{id}` endpoint returns `repository.type` as `azureReposGit`.
 - Moreover, since this endpoint under the hood uses the `/build/definitions/{id}` Azure DevOps endpoint, the plugin set the correct `api-version` parameter needed to update a pipeline using the `/build/definitions/{id}` endpoint (`7.2-preview.7`).
 
->[!NOTE]  
 > Currently, the `api-version` parameter is passed as an environment variable to the plugin by the related Helm chart.
 
 <details><summary><b>Request</b></summary>
@@ -188,9 +187,8 @@ This endpoint deletes a specific pipeline by its ID in the specified Azure DevOp
 **Why This Endpoint Exists**:
 - The standard Azure DevOps REST API does not have a `/pipelines/{id}` endpoint for deleting pipelines.
 - In order to delete a pipeline, you need to use the `/build/definitions/{id}` endpoint, which currently support a different `api-version` parameter when compared to the `/pipelines/{id}` endpoint used for retrieving pipelines.
-- This endpoint set the correct `api-version` parameter needed to delete a pipeline using the `/build/definitions/{id}` endpoint (`7.2-preview.7`).
+- This endpoint sets the correct `api-version` parameter needed to delete a pipeline using the `/build/definitions/{id}` endpoint (`7.2-preview.7`).
 
->[!NOTE]  
 > Currently, the `api-version` parameter is passed as an environment variable to the plugin by the related Helm chart.
 
 <details><summary><b>Request</b></summary>
@@ -355,7 +353,6 @@ It allows you to specify the `defaultBranch` field to set the default branch of 
 }
 ```
 
-> [!NOTE]  
 > The field `projectId` (path parameter) can be either the project ID or the project name. The fields `project.id` and `parentRepository.project.id` in the request body must be the project ID (not the project name) and are required when forking a repository. If you are not forking a repository, you have to omit these fields.
 
 </details>
