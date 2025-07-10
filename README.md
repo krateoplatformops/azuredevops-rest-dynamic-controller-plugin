@@ -41,9 +41,12 @@ Endpoint	repository.type Value
 
 
 
+
+
 ### PipelinePermission
 
-#### Get PipelinePermission
+<details>
+<summary><b>Get PipelinePermission</b></summary>
 
 ```http
 GET /api/{organization}/{project}/pipelines/pipelinepermissions/{resourceType}/{resourceId}
@@ -115,6 +118,7 @@ More precisely, it returns the list of `pipelines` that have permissions to acce
 }
 ```
 </details>
+<details>
 
 ### GitRepository
 
