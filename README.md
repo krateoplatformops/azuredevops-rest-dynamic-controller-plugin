@@ -6,6 +6,7 @@ It is designed to work with the [`rest-dynamic-controller`](https://github.com/k
 ## Summary
 
 - [Summary](#summary)
+- [Architecture](#architecture)
 - [API Endpoints](#api-endpoints)
   - [Pipeline](#pipeline)
     - [Get Pipeline](#get-pipeline)
@@ -18,6 +19,64 @@ It is designed to work with the [`rest-dynamic-controller`](https://github.com/k
 - [Swagger Documentation](#swagger-documentation)
 - [Azure DevOps API Reference](#azuredevops-api-reference)
 - [Authentication](#authentication)
+
+## Architecture
+
+The diagram below illustrates how the Krateo Azure DevOps Plugin interacts within the Krateo ecosystem, including the `rest-dynamic-controller` and the `azuredevops-provider-kog` as well as the Azure DevOps REST API.
+
+```mermaid
+graph TD
+    %% Define node order early to influence layout
+    KOG -- Instanciates --> RDC1
+    KOG -- Instanciates --> RDC2
+    KOG -- Instanciates --> RDC3
+
+    
+    RDC1 --> Pipeline
+    RDC1 -- Direct calls --> ADO_API
+
+    RDC2 --> PipelinePermission
+    RDC2 -- Direct calls --> ADO_API
+    
+    
+    RDC3 -- Direct calls --> ADO_API
+    RDC3 --> GitRepository
+    
+
+    Pipeline -- "Fixes folder path,<br>consistent update/delete" --> ADO_API
+    PipelinePermission -- "Ensures allPipelines<br>property is set" --> ADO_API
+    GitRepository -- "Supports defaultBranch,<br>initialization, fork validation" --> ADO_API
+
+    subgraph Krateo Ecosystem
+        KOG[azuredevops-provider-kog]
+        RDC1[rest-dynamic-controller-1 <br> Pipeline]
+        RDC2[rest-dynamic-controller-2 <br> PipelinePermission]
+        RDC3[rest-dynamic-controller-3 <br> GitRepository]
+
+    end
+
+    subgraph "Plugin (This project)"
+        direction LR
+        Pipeline[Pipeline<br>Endpoints]
+        PipelinePermission[PipelinePermission<br>Endpoint]
+        GitRepository[GitRepository<br>Endpoint]
+    end
+
+    subgraph Azure DevOps
+        ADO_API[Azure DevOps REST API]
+    end
+
+    %% Styling
+    style RDC1 fill:#e0f2f7,stroke:#333,stroke-width:1px
+    style RDC2 fill:#e0f2f7,stroke:#333,stroke-width:1px
+    style RDC3 fill:#e0f2f7,stroke:#333,stroke-width:1px
+    style KOG fill:#e0f2f7,stroke:#333,stroke-width:1px
+    style ADO_API fill:#f0f0f0,stroke:#333,stroke-width:1px
+    style Pipeline fill:#d4f8d4,stroke:#333,stroke-width:1px
+    style PipelinePermission fill:#d4f8d4,stroke:#333,stroke-width:1px
+    style GitRepository fill:#d4f8d4,stroke:#333,stroke-width:1px
+
+```
 
 ## API Endpoints
 
