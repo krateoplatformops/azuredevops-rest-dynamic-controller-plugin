@@ -101,7 +101,8 @@ In particular, it allows you to change the pipeline's name, folder, and configur
 - In order to update a pipeline, you need to use the `/build/definitions/{id}` endpoint, which is not consistent with the `/pipelines/{id}` endpoint used for retrieving pipelines.
 - This endpoint provides a consistent way to update pipelines using the `/pipelines/{id}` endpoint and the same request body schema as the `POST /pipelines` endpoint of Azure DevOps REST API.
 - In particular, the plugin creates a `BuildDefinitionMinimal` object starting from the request body and then performs a `PUT` request to the `/build/definitions/{id}` endpoint of Azure DevOps REST API.
-- A needed adjustement related to the repository type is performed, as the Azure DevOps REST API returns different values for the `repository.type` field depending on the endpoint used to retrieve the pipeline. For instance, even if a pipeline is linked to a `azureReposGit` repository, the `/build/definitions/{id}` endpoint returns `repository.type` as `TfsGit`, while the `/pipelines/{id}` endpoint returns `repository.type` as `azureReposGit`. 
+- A needed adjustement related to the repository type is performed, as the Azure DevOps REST API returns different values for the `repository.type` field depending on the endpoint used to retrieve the pipeline. For instance, even if a pipeline is linked to a `azureReposGit` repository, the `/build/definitions/{id}` endpoint returns `repository.type` as `TfsGit`, while the `/pipelines/{id}` endpoint returns `repository.type` as `azureReposGit`.
+- Moreover, since this endpoint under the hood uses the `/build/definitions/{id}` Azure DevOps endpoint, the plugin set the correct `api-version` parameter needed to update a pipeline using the `/build/definitions/{id}` endpoint (`7.2-preview.7`).
 
 >[!NOTE]  
 > Currently, the `api-version` parameter is passed as an environment variable to the plugin by the related Helm chart.
@@ -162,7 +163,7 @@ PUT /api/{organization}/{project}/pipelines/{id}
     "path":"pipelines/test_inner_pipeline.yml",
     "repository":{
       "id":"string",
-      "type":"azureReposGit"
+      "type":"azureReposGit" // Adjusted field
     },
     "type":"yaml"
   },
@@ -177,6 +178,51 @@ PUT /api/{organization}/{project}/pipelines/{id}
 </details>
 </details>
 
+<details>
+<summary><b>Delete Pipeline (click to expand)</b></summary>
+<br/>
+
+**Description**:
+This endpoint deletes a specific pipeline by its ID in the specified Azure DevOps project.
+
+**Why This Endpoint Exists**:
+- The standard Azure DevOps REST API does not have a `/pipelines/{id}` endpoint for deleting pipelines.
+- In order to delete a pipeline, you need to use the `/build/definitions/{id}` endpoint, which currently support a different `api-version` parameter when compared to the `/pipelines/{id}` endpoint used for retrieving pipelines.
+- This endpoint set the correct `api-version` parameter needed to delete a pipeline using the `/build/definitions/{id}` endpoint (`7.2-preview.7`).
+
+>[!NOTE]  
+> Currently, the `api-version` parameter is passed as an environment variable to the plugin by the related Helm chart.
+
+<details><summary><b>Request</b></summary>
+<br/>
+
+```http
+DELETE /api/{organization}/{project}/pipelines/{id}
+```
+
+**Path parameters**:
+- `organization` (string, required): The name of the Azure DevOps organization.
+- `project` (string, required): The name of the Azure DevOps project.
+- `id` (string, required): The ID of the pipeline to delete.
+
+**Query parameters**:
+- `api-version` (string, required): The version of the Azure DevOps REST API
+  to use. For example, `7.2-preview.7`.
+
+</details>
+
+<details><summary><b>Response</b></summary>
+<br/>
+
+**Response status codes**:
+- `204 No Content`: The pipeline was successfully deleted.
+- `400 Bad Request`: The request is invalid or the pipeline ID does not exist.
+- `401 Unauthorized`: The request is not authorized. Ensure that the `Authorization` header is set correctly.
+- `404 Not Found`: The specified pipeline does not exist in the project.
+- `500 Internal Server Error`: An unexpected error occurred while processing the request.
+
+</details>
+</details>
 
 ### PipelinePermission
 
