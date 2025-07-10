@@ -96,75 +96,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/{organization}/{project}/pipelines/": {
-            "post": {
-                "description": "Create a new Pipeline",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "summary": "Create a new Pipeline",
-                "operationId": "post-pipeline",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Organization name",
-                        "name": "organization",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Project ID or name",
-                        "name": "projectId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "API version (e.g., 7.2-preview.1)",
-                        "name": "api-version",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Basic Auth header (Basic \u003cbase64-encoded-username:password\u003e)",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "description": "Pipeline creation request body",
-                        "name": "pipelineCreate",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/pipeline.CreatePipelineRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Pipeline details",
-                        "schema": {
-                            "$ref": "#/definitions/pipeline.CreatePipelineResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "500": {
-                        "description": "Internal Server Error"
-                    }
-                }
-            }
-        },
         "/api/{organization}/{project}/pipelines/pipelinepermissions/{resourceType}/{resourceId}": {
             "get": {
                 "description": "Get",
@@ -320,13 +251,6 @@ const docTemplate = `{
                         "description": "Pipeline ID",
                         "name": "id",
                         "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "API version (e.g., 7.2-preview.1)",
-                        "name": "api-version",
-                        "in": "query",
                         "required": true
                     },
                     {
@@ -648,90 +572,6 @@ const docTemplate = `{
                 }
             }
         },
-        "pipeline.Build": {
-            "type": "object",
-            "properties": {
-                "buildNumber": {
-                    "type": "string"
-                },
-                "finishTime": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "queueTime": {
-                    "type": "string"
-                },
-                "result": {
-                    "type": "string"
-                },
-                "startTime": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "uri": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "pipeline.BuildDefinitionReference": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "path": {
-                    "type": "string"
-                },
-                "project": {
-                    "$ref": "#/definitions/pipeline.ProjectReference"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "uri": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "pipeline.BuildDefinitionVariable": {
-            "type": "object",
-            "properties": {
-                "allowOverride": {
-                    "type": "boolean"
-                },
-                "isSecret": {
-                    "type": "boolean"
-                },
-                "value": {
-                    "type": "string"
-                }
-            }
-        },
-        "pipeline.BuildMetric": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "scope": {
-                    "type": "string"
-                },
-                "value": {}
-            }
-        },
         "pipeline.BuildRepository": {
             "type": "object",
             "properties": {
@@ -741,73 +581,6 @@ const docTemplate = `{
                 },
                 "type": {
                     "description": "Required - enum: unknown, gitHub, azureReposGit, azureReposGitHyphenated",
-                    "type": "string"
-                }
-            }
-        },
-        "pipeline.CreatePipelineConfigurationParametersComplete": {
-            "type": "object",
-            "properties": {
-                "path": {
-                    "type": "string"
-                },
-                "repository": {
-                    "description": "Required",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/pipeline.BuildRepository"
-                        }
-                    ]
-                },
-                "type": {
-                    "description": "Required - enum: unknown, yaml, designerJson, justInTime, designerHyphenJson",
-                    "type": "string"
-                }
-            }
-        },
-        "pipeline.CreatePipelineRequest": {
-            "type": "object",
-            "properties": {
-                "configuration": {
-                    "description": "Required",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/pipeline.CreatePipelineConfigurationParametersComplete"
-                        }
-                    ]
-                },
-                "folder": {
-                    "type": "string"
-                },
-                "name": {
-                    "description": "Required",
-                    "type": "string"
-                }
-            }
-        },
-        "pipeline.CreatePipelineResponse": {
-            "type": "object",
-            "properties": {
-                "_links": {
-                    "$ref": "#/definitions/pipeline.ReferenceLinks"
-                },
-                "configuration": {
-                    "$ref": "#/definitions/pipeline.PipelineConfiguration"
-                },
-                "folder": {
-                    "description": "Embedded fields from PipelineBase",
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "revision": {
-                    "type": "integer"
-                },
-                "url": {
                     "type": "string"
                 }
             }
@@ -842,78 +615,39 @@ const docTemplate = `{
         "pipeline.PipelineConfiguration": {
             "type": "object",
             "properties": {
+                "path": {
+                    "type": "string"
+                },
+                "repository": {
+                    "description": "Required",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/pipeline.BuildRepository"
+                        }
+                    ]
+                },
                 "type": {
                     "description": "enum: unknown, yaml, designerJson, justInTime, designerHyphenJson",
                     "type": "string"
                 }
             }
         },
-        "pipeline.ProcessParameterInput": {
+        "pipeline.PipelineConfigurationParameters": {
             "type": "object",
             "properties": {
-                "defaultValue": {
+                "path": {
                     "type": "string"
                 },
-                "helpMarkDown": {
-                    "type": "string"
-                },
-                "label": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "properties": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "required": {
-                    "type": "boolean"
+                "repository": {
+                    "description": "Required",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/pipeline.BuildRepository"
+                        }
+                    ]
                 },
                 "type": {
-                    "type": "string"
-                },
-                "visibleRule": {
-                    "type": "string"
-                }
-            }
-        },
-        "pipeline.ProcessParameters": {
-            "type": "object",
-            "properties": {
-                "inputs": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/pipeline.ProcessParameterInput"
-                    }
-                }
-            }
-        },
-        "pipeline.ProjectReference": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "lastUpdateTime": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "revision": {
-                    "type": "integer"
-                },
-                "state": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                },
-                "visibility": {
+                    "description": "Required - enum: unknown, yaml, designerJson, justInTime, designerHyphenJson",
                     "type": "string"
                 }
             }
@@ -930,62 +664,21 @@ const docTemplate = `{
         "pipeline.UpdatePipelineRequest": {
             "type": "object",
             "properties": {
-                "badgeEnabled": {
-                    "type": "boolean"
+                "configuration": {
+                    "$ref": "#/definitions/pipeline.PipelineConfigurationParameters"
                 },
-                "buildNumberFormat": {
-                    "type": "string"
-                },
-                "comment": {
+                "folder": {
                     "type": "string"
                 },
                 "id": {
+                    "description": "maybe to be removed since RDC does not include it",
                     "type": "integer"
                 },
                 "name": {
-                    "description": "Required",
                     "type": "string"
-                },
-                "path": {
-                    "type": "string"
-                },
-                "process": {},
-                "processParameters": {
-                    "$ref": "#/definitions/pipeline.ProcessParameters"
-                },
-                "properties": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "quality": {
-                    "type": "string"
-                },
-                "repository": {
-                    "$ref": "#/definitions/pipeline.BuildRepository"
                 },
                 "revision": {
                     "type": "integer"
-                },
-                "tags": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "type": {
-                    "type": "string"
-                },
-                "variableGroups": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/pipeline.VariableGroup"
-                    }
-                },
-                "variables": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/pipeline.BuildDefinitionVariable"
-                    }
                 }
             }
         },
@@ -995,146 +688,24 @@ const docTemplate = `{
                 "_links": {
                     "$ref": "#/definitions/pipeline.ReferenceLinks"
                 },
-                "badgeEnabled": {
-                    "type": "boolean"
+                "configuration": {
+                    "$ref": "#/definitions/pipeline.PipelineConfiguration"
                 },
-                "buildNumberFormat": {
-                    "type": "string"
-                },
-                "comment": {
-                    "type": "string"
-                },
-                "createdDate": {
-                    "type": "string"
-                },
-                "dateCreated": {
-                    "type": "string"
-                },
-                "draftOf": {
-                    "$ref": "#/definitions/pipeline.BuildDefinitionReference"
-                },
-                "drafts": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/pipeline.BuildDefinitionReference"
-                    }
-                },
-                "dropLocation": {
+                "folder": {
+                    "description": "Embedded fields from PipelineBase",
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
-                "jobAuthorizationScope": {
-                    "type": "string"
-                },
-                "jobCancelTimeoutInMinutes": {
-                    "type": "integer"
-                },
-                "jobTimeoutInMinutes": {
-                    "type": "integer"
-                },
-                "latestBuild": {
-                    "$ref": "#/definitions/pipeline.Build"
-                },
-                "latestCompletedBuild": {
-                    "$ref": "#/definitions/pipeline.Build"
-                },
-                "metrics": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/pipeline.BuildMetric"
-                    }
-                },
                 "name": {
                     "type": "string"
-                },
-                "path": {
-                    "type": "string"
-                },
-                "process": {},
-                "processParameters": {
-                    "$ref": "#/definitions/pipeline.ProcessParameters"
-                },
-                "project": {
-                    "$ref": "#/definitions/pipeline.ProjectReference"
-                },
-                "properties": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "quality": {
-                    "type": "string"
-                },
-                "repository": {
-                    "$ref": "#/definitions/pipeline.BuildRepository"
                 },
                 "revision": {
                     "type": "integer"
                 },
-                "tags": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "type": {
-                    "type": "string"
-                },
-                "uri": {
-                    "type": "string"
-                },
                 "url": {
                     "type": "string"
-                },
-                "variableGroups": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/pipeline.VariableGroup"
-                    }
-                },
-                "variables": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/pipeline.BuildDefinitionVariable"
-                    }
-                }
-            }
-        },
-        "pipeline.Variable": {
-            "type": "object",
-            "properties": {
-                "allowOverride": {
-                    "type": "boolean"
-                },
-                "isSecret": {
-                    "type": "boolean"
-                },
-                "value": {
-                    "type": "string"
-                }
-            }
-        },
-        "pipeline.VariableGroup": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "variables": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/pipeline.Variable"
-                    }
                 }
             }
         },

@@ -73,60 +73,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/gitrepository.CreateRepositoryResponse'
       x-codegen-request-body-name: gitrepositoryCreate
-  /api/{organization}/{project}/pipelines/:
-    post:
-      summary: Create a new Pipeline
-      description: Create a new Pipeline
-      operationId: post-pipeline
-      parameters:
-        - name: organization
-          in: path
-          description: Organization name
-          required: true
-          schema:
-            type: string
-        - name: projectId
-          in: path
-          description: Project ID or name
-          required: true
-          schema:
-            type: string
-        - name: api-version
-          in: query
-          description: API version (e.g., 7.2-preview.1)
-          required: true
-          schema:
-            type: string
-        - name: Authorization
-          in: header
-          description: Basic Auth header (Basic <base64-encoded-username:password>)
-          required: true
-          schema:
-            type: string
-      requestBody:
-        description: Pipeline creation request body
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/pipeline.CreatePipelineRequest'
-        required: true
-      responses:
-        "201":
-          description: Pipeline details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/pipeline.CreatePipelineResponse'
-        "400":
-          description: Bad Request
-          content: {}
-        "401":
-          description: Unauthorized
-          content: {}
-        "500":
-          description: Internal Server Error
-          content: {}
-      x-codegen-request-body-name: pipelineCreate
   /api/{organization}/{project}/pipelines/pipelinepermissions/{resourceType}/{resourceId}:
     get:
       summary: Get the pipeline permission of a resource
@@ -248,12 +194,6 @@ paths:
         - name: id
           in: path
           description: Pipeline ID
-          required: true
-          schema:
-            type: string
-        - name: api-version
-          in: query
-          description: API version (e.g., 7.2-preview.1)
           required: true
           schema:
             type: string
@@ -490,62 +430,6 @@ components:
       properties:
         id:
           type: string
-    pipeline.Build:
-      type: object
-      properties:
-        buildNumber:
-          type: string
-        finishTime:
-          type: string
-        id:
-          type: integer
-        queueTime:
-          type: string
-        result:
-          type: string
-        startTime:
-          type: string
-        status:
-          type: string
-        uri:
-          type: string
-        url:
-          type: string
-    pipeline.BuildDefinitionReference:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        path:
-          type: string
-        project:
-          $ref: '#/components/schemas/pipeline.ProjectReference'
-        type:
-          type: string
-        uri:
-          type: string
-        url:
-          type: string
-    pipeline.BuildDefinitionVariable:
-      type: object
-      properties:
-        allowOverride:
-          type: boolean
-        isSecret:
-          type: boolean
-        value:
-          type: string
-    pipeline.BuildMetric:
-      type: object
-      properties:
-        name:
-          type: string
-        scope:
-          type: string
-        value:
-          type: object
     pipeline.BuildRepository:
       type: object
       properties:
@@ -555,50 +439,6 @@ components:
         type:
           type: string
           description: 'Required - enum: unknown, gitHub, azureReposGit, azureReposGitHyphenated'
-    pipeline.CreatePipelineConfigurationParametersComplete:
-      type: object
-      properties:
-        path:
-          type: string
-        repository:
-          type: object
-          description: Required
-          allOf:
-            - $ref: '#/components/schemas/pipeline.BuildRepository'
-        type:
-          type: string
-          description: 'Required - enum: unknown, yaml, designerJson, justInTime, designerHyphenJson'
-    pipeline.CreatePipelineRequest:
-      type: object
-      properties:
-        configuration:
-          type: object
-          description: Required
-          allOf:
-            - $ref: '#/components/schemas/pipeline.CreatePipelineConfigurationParametersComplete'
-        folder:
-          type: string
-        name:
-          type: string
-          description: Required
-    pipeline.CreatePipelineResponse:
-      type: object
-      properties:
-        _links:
-          $ref: '#/components/schemas/pipeline.ReferenceLinks'
-        configuration:
-          $ref: '#/components/schemas/pipeline.PipelineConfiguration'
-        folder:
-          type: string
-          description: Embedded fields from PipelineBase
-        id:
-          type: integer
-        name:
-          type: string
-        revision:
-          type: integer
-        url:
-          type: string
     pipeline.GetPipelineResponse:
       type: object
       properties:
@@ -620,55 +460,29 @@ components:
     pipeline.PipelineConfiguration:
       type: object
       properties:
+        path:
+          type: string
+        repository:
+          type: object
+          description: Required
+          allOf:
+            - $ref: '#/components/schemas/pipeline.BuildRepository'
         type:
           type: string
           description: 'enum: unknown, yaml, designerJson, justInTime, designerHyphenJson'
-    pipeline.ProcessParameterInput:
+    pipeline.PipelineConfigurationParameters:
       type: object
       properties:
-        defaultValue:
+        path:
           type: string
-        helpMarkDown:
-          type: string
-        label:
-          type: string
-        name:
-          type: string
-        properties:
+        repository:
           type: object
-          additionalProperties: true
-        required:
-          type: boolean
+          description: Required
+          allOf:
+            - $ref: '#/components/schemas/pipeline.BuildRepository'
         type:
           type: string
-        visibleRule:
-          type: string
-    pipeline.ProcessParameters:
-      type: object
-      properties:
-        inputs:
-          type: array
-          items:
-            $ref: '#/components/schemas/pipeline.ProcessParameterInput'
-    pipeline.ProjectReference:
-      type: object
-      properties:
-        description:
-          type: string
-        id:
-          type: string
-        lastUpdateTime:
-          type: string
-        name:
-          type: string
-        revision:
-          type: integer
-        state:
-          type: string
-        url:
-          type: string
-        visibility:
-          type: string
+          description: 'Required - enum: unknown, yaml, designerJson, justInTime, designerHyphenJson'
     pipeline.ReferenceLinks:
       type: object
       properties:
@@ -678,146 +492,35 @@ components:
     pipeline.UpdatePipelineRequest:
       type: object
       properties:
-        badgeEnabled:
-          type: boolean
-        buildNumberFormat:
-          type: string
-        comment:
+        configuration:
+          $ref: '#/components/schemas/pipeline.PipelineConfigurationParameters'
+        folder:
           type: string
         id:
           type: integer
+          description: maybe to be removed since RDC does not include it
         name:
           type: string
-          description: Required
-        path:
-          type: string
-        process:
-          type: object
-        processParameters:
-          $ref: '#/components/schemas/pipeline.ProcessParameters'
-        properties:
-          type: object
-          additionalProperties: true
-        quality:
-          type: string
-        repository:
-          $ref: '#/components/schemas/pipeline.BuildRepository'
         revision:
           type: integer
-        tags:
-          type: array
-          items:
-            type: string
-        type:
-          type: string
-        variableGroups:
-          type: array
-          items:
-            $ref: '#/components/schemas/pipeline.VariableGroup'
-        variables:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/pipeline.BuildDefinitionVariable'
     pipeline.UpdatePipelineResponse:
       type: object
       properties:
         _links:
           $ref: '#/components/schemas/pipeline.ReferenceLinks'
-        badgeEnabled:
-          type: boolean
-        buildNumberFormat:
+        configuration:
+          $ref: '#/components/schemas/pipeline.PipelineConfiguration'
+        folder:
           type: string
-        comment:
-          type: string
-        createdDate:
-          type: string
-        dateCreated:
-          type: string
-        draftOf:
-          $ref: '#/components/schemas/pipeline.BuildDefinitionReference'
-        drafts:
-          type: array
-          items:
-            $ref: '#/components/schemas/pipeline.BuildDefinitionReference'
-        dropLocation:
-          type: string
+          description: Embedded fields from PipelineBase
         id:
           type: integer
-        jobAuthorizationScope:
-          type: string
-        jobCancelTimeoutInMinutes:
-          type: integer
-        jobTimeoutInMinutes:
-          type: integer
-        latestBuild:
-          $ref: '#/components/schemas/pipeline.Build'
-        latestCompletedBuild:
-          $ref: '#/components/schemas/pipeline.Build'
-        metrics:
-          type: array
-          items:
-            $ref: '#/components/schemas/pipeline.BuildMetric'
         name:
           type: string
-        path:
-          type: string
-        process:
-          type: object
-        processParameters:
-          $ref: '#/components/schemas/pipeline.ProcessParameters'
-        project:
-          $ref: '#/components/schemas/pipeline.ProjectReference'
-        properties:
-          type: object
-          additionalProperties: true
-        quality:
-          type: string
-        repository:
-          $ref: '#/components/schemas/pipeline.BuildRepository'
         revision:
           type: integer
-        tags:
-          type: array
-          items:
-            type: string
-        type:
-          type: string
-        uri:
-          type: string
         url:
           type: string
-        variableGroups:
-          type: array
-          items:
-            $ref: '#/components/schemas/pipeline.VariableGroup'
-        variables:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/pipeline.BuildDefinitionVariable'
-    pipeline.Variable:
-      type: object
-      properties:
-        allowOverride:
-          type: boolean
-        isSecret:
-          type: boolean
-        value:
-          type: string
-    pipeline.VariableGroup:
-      type: object
-      properties:
-        description:
-          type: string
-        id:
-          type: integer
-        name:
-          type: string
-        type:
-          type: string
-        variables:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/pipeline.Variable'
     pipelinepermission.IdentityRef:
       type: object
       properties:

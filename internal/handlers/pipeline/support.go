@@ -3,6 +3,7 @@ package pipeline
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // function to add a field to the response body
@@ -31,4 +32,26 @@ func ReadFieldFromBody(body []byte, fieldName string) (interface{}, error) {
 	}
 
 	return value, nil
+}
+
+func normalizeRepoTypeFromAzure(typ string) string {
+	switch typ {
+	case "TfsGit":
+		return RepositoryTypeAzureReposGit
+	case "GitHub":
+		return RepositoryTypeGitHub
+	default:
+		return strings.TrimSpace(strings.ToLower(typ))
+	}
+}
+
+func normalizeRepoTypeToAzure(typ string) string {
+	switch typ {
+	case RepositoryTypeAzureReposGit:
+		return "TfsGit"
+	case RepositoryTypeGitHub:
+		return "GitHub"
+	default:
+		return strings.TrimSpace(strings.ToLower(typ))
+	}
 }

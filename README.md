@@ -17,6 +17,30 @@ It is designed to work with the [`rest-dynamic-controller`](https://github.com/k
 
 ## API Endpoints
 
+
+
+### Pipeline
+
+#### Get Pipeline
+
+```http
+GET /api/{organization}/{project}/pipelines/{id}
+```
+
+**Description**:
+This endpoint retrieves a specific pipeline by its ID in the specified Azure DevOps project.
+It returns the pipeline details, including its ID, name, and other metadata.
+
+#### PUT
+
+Azure DevOps returns different repository.type values depending on the endpoint:
+
+Endpoint	repository.type Value
+/build/definitions/{id} (classic)	"TfsGit"
+/pipelines/{id} (YAML pipelines)	"azureReposGit"
+
+
+
 ### PipelinePermission
 
 #### Get PipelinePermission

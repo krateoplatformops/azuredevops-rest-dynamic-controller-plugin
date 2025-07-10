@@ -83,6 +83,7 @@ func main() {
 
 	// Pipeline
 	mux.Handle("GET /api/{organization}/{project}/pipelines/{id}", pipeline.GetPipeline(opts))
+	mux.Handle("PUT /api/{organization}/{project}/pipelines/{id}", pipeline.PutPipeline(opts))
 	mux.Handle("DELETE /api/{organization}/{project}/pipelines/{id}", pipeline.DeletePipeline(opts))
 	//mux.Handle("POST /api/{organization}/{project}/pipelines", pipeline.PostPipeline(opts)) // Implemented but not used
 
