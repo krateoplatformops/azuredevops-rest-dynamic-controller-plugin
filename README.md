@@ -8,6 +8,9 @@ It is designed to work with the [`rest-dynamic-controller`](https://github.com/k
 - [Summary](#summary)
 - [API Endpoints](#api-endpoints)
   - [Pipeline](#pipeline)
+    - [Get Pipeline](#get-pipeline)
+    - [Update Pipeline](#update-pipeline)
+    - [Delete Pipeline](#delete-pipeline)
   - [PipelinePermission](#pipelinepermission)
   - [GitRepository](#gitrepository)
 - [Swagger Documentation](#swagger-documentation)
@@ -18,17 +21,20 @@ It is designed to work with the [`rest-dynamic-controller`](https://github.com/k
 
 ### Pipeline
 
-<details>
-<summary><b>Get Pipeline (click to expand)</b></summary>
-<br/>
+#### Get Pipeline
 
 **Description**:
 This endpoint retrieves a specific pipeline by its ID in the specified Azure DevOps project.
 It returns the pipeline details, including its ID, name, and other metadata.
 
-**Why This Endpoint Exists**:
+<details>
+<summary><b>Why This Endpoint Exists</b></summary>
+<br/>
+
 - The standard Azure DevOps REST API return the `folder` field with an "escaped backslash" as prefix like `"folder":"\\test-folder"`.
 - This endpoint returns the `folder` field without the "escaped backslash" prefix, allowing a correct comparison with the `folder` field set in the `spec` of the `Pipeline` resource.
+
+</details>
 
 <details>
 <summary><b>Request</b></summary>
@@ -86,17 +92,17 @@ GET /api/{organization}/{project}/pipelines/{id}
 ```
 
 </details>
-</details>
 
-<details>
-<summary><b>Update Pipeline (click to expand)</b></summary>
-<br/>
+#### Update Pipeline
 
 **Description**:
 This endpoint updates an existing pipeline in the specified Azure DevOps project.
 In particular, it allows you to change the pipeline's name, folder, and configuration details such as the path to the configuration file.
 
-**Why This Endpoint Exists**:
+<details>
+<summary><b>Why This Endpoint Exists</b></summary>
+<br/>
+
 - The standard Azure DevOps REST API does not have a `/pipelines/{id}` endpoint for updating pipelines.
 - In order to update a pipeline, you need to use the `/build/definitions/{id}` endpoint, which is not consistent with the `/pipelines/{id}` endpoint used for retrieving pipelines.
 - This endpoint provides a consistent way to update pipelines using the `/pipelines/{id}` endpoint and the same request body schema as the `POST /pipelines` endpoint of Azure DevOps REST API.
@@ -105,6 +111,8 @@ In particular, it allows you to change the pipeline's name, folder, and configur
 - Moreover, since this endpoint under the hood uses the `/build/definitions/{id}` Azure DevOps endpoint, the plugin set the correct `api-version` parameter needed to update a pipeline using the `/build/definitions/{id}` endpoint (`7.2-preview.7`).
 
 > Currently, the `api-version` parameter is passed as an environment variable to the plugin by the related Helm chart.
+
+</details>
 
 <details><summary><b>Request</b></summary>
 <br/>
@@ -175,21 +183,23 @@ PUT /api/{organization}/{project}/pipelines/{id}
 ```
 
 </details>
-</details>
 
-<details>
-<summary><b>Delete Pipeline (click to expand)</b></summary>
-<br/>
+#### Delete Pipeline
 
 **Description**:
 This endpoint deletes a specific pipeline by its ID in the specified Azure DevOps project.
 
-**Why This Endpoint Exists**:
+<details>
+<summary><b>Why This Endpoint Exists</b></summary>
+<br/>
+
 - The standard Azure DevOps REST API does not have a `/pipelines/{id}` endpoint for deleting pipelines.
 - In order to delete a pipeline, you need to use the `/build/definitions/{id}` endpoint, which currently support a different `api-version` parameter when compared to the `/pipelines/{id}` endpoint used for retrieving pipelines.
 - This endpoint sets the correct `api-version` parameter needed to delete a pipeline using the `/build/definitions/{id}` endpoint (`7.2-preview.7`).
 
 > Currently, the `api-version` parameter is passed as an environment variable to the plugin by the related Helm chart.
+
+</details>
 
 <details><summary><b>Request</b></summary>
 <br/>
@@ -202,10 +212,6 @@ DELETE /api/{organization}/{project}/pipelines/{id}
 - `organization` (string, required): The name of the Azure DevOps organization.
 - `project` (string, required): The name of the Azure DevOps project.
 - `id` (string, required): The ID of the pipeline to delete.
-
-**Query parameters**:
-- `api-version` (string, required): The version of the Azure DevOps REST API
-  to use. For example, `7.2-preview.7`.
 
 </details>
 
@@ -220,28 +226,31 @@ DELETE /api/{organization}/{project}/pipelines/{id}
 - `500 Internal Server Error`: An unexpected error occurred while processing the request.
 
 </details>
-</details>
 
 ### PipelinePermission
 
-<details>
-<summary><b>Get PipelinePermission (click to expand)</b></summary>
-<br/>
-
-```http
-GET /api/{organization}/{project}/pipelines/pipelinepermissions/{resourceType}/{resourceId}
-```
+#### Get PipelinePermission
 
 **Description**: 
 Given a `ResourceType` and `ResourceId`, it returns authorized definitions for that resource.
 More precisely, it returns the list of `pipelines` that have permissions to access the specified resource and the fact whether `allPipelines` have access to it.
 
-**Why This Endpoint Exists**:
+<details>
+<summary><b>Why This Endpoint Exists</b></summary>
+<br/>
+
 - The standard Azure DevOps REST API does not return the `allPipelines` property when said property is set to `authorized: false` on Azure DevOps (default behavior).
 - This endpoint checks if the response from the Azure DevOps REST API contains the `allPipelines` property and, if not, it adds it with a value of `authorized: false`.
 
+</details>
+
 <details>
 <summary><b>Request</b></summary>
+<br/>
+
+```http
+GET /api/{organization}/{project}/pipelines/pipelinepermissions/{resourceType}/{resourceId}
+```
 
 **Path parameters**:
 - `organization` (string, required): The name of the Azure DevOps organization.
@@ -255,6 +264,7 @@ More precisely, it returns the list of `pipelines` that have permissions to acce
 
 <details>
 <summary><b>Response</b></summary>
+<br/>
 
 **Response status codes**:
 - `200 OK`: The request was successful.
@@ -298,17 +308,10 @@ More precisely, it returns the list of `pipelines` that have permissions to acce
 }
 ```
 </details>
-</details>
 
 ### GitRepository
 
 #### Create GitRepository
-
-<br/>
-
-```http
-POST /api/{organization}/{projectId}/git/repositories
-```
 
 **Description**:
 This endpoint creates a new GitRepository in the specified Azure DevOps project.
@@ -329,6 +332,11 @@ It allows you to specify the `defaultBranch` field to set the default branch of 
 
 <details>
 <summary><b>Request</b></summary>
+<br/>
+
+```http
+POST /api/{organization}/{projectId}/git/repositories
+```
 
 **Path parameters**:
 - `organization` (string, required): The name of the Azure DevOps organization.
@@ -364,6 +372,7 @@ It allows you to specify the `defaultBranch` field to set the default branch of 
 
 <details>
 <summary><b>Response</b></summary>
+<br/>
 
 **Response status codes**:
 - `201 Created`: The GitRrepository was successfully created.
@@ -439,7 +448,6 @@ It allows you to specify the `defaultBranch` field to set the default branch of 
 ```
 
 </details>
-
 
 ## Swagger Documentation
 
