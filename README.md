@@ -302,8 +302,8 @@ More precisely, it returns the list of `pipelines` that have permissions to acce
 
 ### GitRepository
 
-<details>
-<summary><b>Create GitRepository (click to expand)</b></summary>
+#### Create GitRepository
+
 <br/>
 
 ```http
