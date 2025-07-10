@@ -7,31 +7,102 @@ It is designed to work with the [`rest-dynamic-controller`](https://github.com/k
 
 - [Summary](#summary)
 - [API Endpoints](#api-endpoints)
+  - [Pipeline](#pipeline)
   - [PipelinePermission](#pipelinepermission)
-    - [Get PipelinePermission](#get-pipeline-permission)
   - [GitRepository](#gitrepository)
-    - [Create GitRepository](#create-gitrepository)
 - [Swagger Documentation](#swagger-documentation)
 - [Azure DevOps API Reference](#azuredevops-api-reference)
 - [Authentication](#authentication)
 
 ## API Endpoints
 
-
-
 ### Pipeline
 
-#### Get Pipeline
-
-```http
-GET /api/{organization}/{project}/pipelines/{id}
-```
+<details>
+<summary><b>Get Pipeline (click to expand)</b></summary>
+<br/>
 
 **Description**:
 This endpoint retrieves a specific pipeline by its ID in the specified Azure DevOps project.
 It returns the pipeline details, including its ID, name, and other metadata.
 
-#### PUT
+**Why This Endpoint Exists**:
+- The standard Azure DevOps REST API return the `folder` field with an "escaped backslash" as prefix like `"folder":"\\test-folder"`.
+- This endpoint returns the `folder` field without the "escaped backslash" prefix, allowing a correct comparison with the `folder` field set in the `spec` of the `Pipeline` resource.
+
+<details>
+<summary><b>Request</b></summary>
+<br/>
+
+```http
+GET /api/{organization}/{project}/pipelines/{id}
+```
+
+**Path parameters**:
+- `organization` (string, required): The name of the Azure DevOps organization.
+- `project` (string, required): The name of the Azure DevOps project.
+- `id` (string, required): The ID of the pipeline to retrieve.
+
+**Query parameters**:
+- `api-version` (string, required): The version of the Azure DevOps REST API to use. For example, `7.2-preview.1`.
+
+</details>
+
+<details>
+<summary><b>Response</b></summary>
+<br/>
+
+**Response status codes**:
+- `200 OK`: The request was successful and the pipeline details are returned.
+- `400 Bad Request`: The request is invalid. Ensure that the `organization`, `project`, and `id` parameters are correct.
+- `401 Unauthorized`: The request is not authorized. Ensure that the `Authorization` header is set correctly.
+- `500 Internal Server Error`: An unexpected error occurred while processing the request.
+
+**Response body example**:
+```json
+{
+  "_links":{
+    "self":{
+      "href":"string"
+      },
+    "web":{
+      "href":"string"
+    }
+  },
+  "configuration":{
+    "path":"pipelines/test_inner_pipeline.yml",
+    "repository":{
+      "id":"string",
+      "type":"azureReposGit"
+    },
+    "type":"yaml"
+  },
+  "folder":"test-folder-kog",
+  "id":49,
+  "name":"test-pipeline-kog-1",
+  "revision":1,
+  "url":"string"
+}
+```
+
+</details>
+</details>
+
+
+
+
+
+
+<details>
+<summary><b>Create Pipeline (click to expand)</b></summary>
+<br/>
+
+
+
+<details>
+<summary><b>Update Pipeline (click to expand)</b></summary>
+<br/>
+
 
 Azure DevOps returns different repository.type values depending on the endpoint:
 
