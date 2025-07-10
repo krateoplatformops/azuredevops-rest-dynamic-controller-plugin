@@ -434,7 +434,7 @@ It allows you to specify the `defaultBranch` field to set the default branch of 
 ```
 
 </details>
-</details>
+
 
 ## Swagger Documentation
 
