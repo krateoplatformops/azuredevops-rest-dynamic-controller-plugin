@@ -92,6 +92,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/gitrepository.CreateRepositoryResponse"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
                     }
                 }
             }
@@ -154,6 +160,192 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/pipelinepermission.ResourcePipelinePermissions"
                         }
+                    }
+                }
+            }
+        },
+        "/api/{organization}/{project}/pipelines/{id}": {
+            "get": {
+                "description": "Get",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get a pipeline",
+                "operationId": "get-pipeline",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization name",
+                        "name": "organization",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Project name or ID",
+                        "name": "project",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pipeline ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "API version (e.g., 7.2-preview.1)",
+                        "name": "api-version",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Basic Auth header (Basic \u003cbase64-encoded-username:password\u003e)",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pipeline details",
+                        "schema": {
+                            "$ref": "#/definitions/pipeline.GetPipelineResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            },
+            "put": {
+                "description": "Update a pipeline using build definitions endpoint",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Update a pipeline",
+                "operationId": "put-pipeline",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization name",
+                        "name": "organization",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Project name or ID",
+                        "name": "project",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pipeline ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Basic Auth header (Basic \u003cbase64-encoded-username:password\u003e)",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Pipeline update request body",
+                        "name": "pipelineUpdate",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/pipeline.UpdatePipelineRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Updated pipeline details",
+                        "schema": {
+                            "$ref": "#/definitions/pipeline.UpdatePipelineResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a pipeline using build definitions endpoint",
+                "summary": "Delete a pipeline",
+                "operationId": "delete-pipeline",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Organization name",
+                        "name": "organization",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Project name or ID",
+                        "name": "project",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pipeline ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Basic Auth header (Basic \u003cbase64-encoded-username:password\u003e)",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content - Pipeline deleted successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
                     }
                 }
             }
@@ -382,6 +574,143 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "pipeline.BuildRepository": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "Required",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "Required - enum: unknown, gitHub, azureReposGit, azureReposGitHyphenated",
+                    "type": "string"
+                }
+            }
+        },
+        "pipeline.GetPipelineResponse": {
+            "type": "object",
+            "properties": {
+                "_links": {
+                    "$ref": "#/definitions/pipeline.ReferenceLinks"
+                },
+                "configuration": {
+                    "$ref": "#/definitions/pipeline.PipelineConfiguration"
+                },
+                "folder": {
+                    "description": "Embedded fields from PipelineBase",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "revision": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "pipeline.PipelineConfiguration": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string"
+                },
+                "repository": {
+                    "description": "Required",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/pipeline.BuildRepository"
+                        }
+                    ]
+                },
+                "type": {
+                    "description": "enum: unknown, yaml, designerJson, justInTime, designerHyphenJson",
+                    "type": "string"
+                }
+            }
+        },
+        "pipeline.PipelineConfigurationParameters": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string"
+                },
+                "repository": {
+                    "description": "Required",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/pipeline.BuildRepository"
+                        }
+                    ]
+                },
+                "type": {
+                    "description": "Required - enum: unknown, yaml, designerJson, justInTime, designerHyphenJson",
+                    "type": "string"
+                }
+            }
+        },
+        "pipeline.ReferenceLinks": {
+            "type": "object",
+            "properties": {
+                "links": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            }
+        },
+        "pipeline.UpdatePipelineRequest": {
+            "type": "object",
+            "properties": {
+                "configuration": {
+                    "$ref": "#/definitions/pipeline.PipelineConfigurationParameters"
+                },
+                "folder": {
+                    "type": "string"
+                },
+                "id": {
+                    "description": "maybe to be removed since RDC does not include it",
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "revision": {
+                    "type": "integer"
+                }
+            }
+        },
+        "pipeline.UpdatePipelineResponse": {
+            "type": "object",
+            "properties": {
+                "_links": {
+                    "$ref": "#/definitions/pipeline.ReferenceLinks"
+                },
+                "configuration": {
+                    "$ref": "#/definitions/pipeline.PipelineConfiguration"
+                },
+                "folder": {
+                    "description": "Embedded fields from PipelineBase",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "revision": {
+                    "type": "integer"
+                },
+                "url": {
                     "type": "string"
                 }
             }

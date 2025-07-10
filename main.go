@@ -15,6 +15,7 @@ import (
 	"github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/internal/handlers"
 	"github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/internal/handlers/gitrepository"
 	"github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/internal/handlers/health"
+	"github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/internal/handlers/pipeline"
 	"github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/internal/handlers/pipelinepermission"
 	"github.com/krateoplatformops/plumbing/env"
 	"github.com/rs/zerolog"
@@ -79,6 +80,12 @@ func main() {
 	ready := int32(0)
 
 	// Business logic routes to handle some Azure DevOps API's endpoints
+
+	// Pipeline
+	mux.Handle("GET /api/{organization}/{project}/pipelines/{id}", pipeline.GetPipeline(opts))
+	mux.Handle("PUT /api/{organization}/{project}/pipelines/{id}", pipeline.PutPipeline(opts))
+	mux.Handle("DELETE /api/{organization}/{project}/pipelines/{id}", pipeline.DeletePipeline(opts))
+	//mux.Handle("POST /api/{organization}/{project}/pipelines", pipeline.PostPipeline(opts)) // Implemented but not used
 
 	// PipelinePermission
 	mux.Handle("GET /api/{organization}/{project}/pipelines/pipelinepermissions/{resourceType}/{resourceId}", pipelinepermission.GetPipelinePermission(opts))
