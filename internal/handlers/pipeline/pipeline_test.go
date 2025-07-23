@@ -221,7 +221,7 @@ var (
 	validPutRequestBody = `{
 		"name": "updated-pipeline",
 		"folder": "\\UpdatedFolder",
-		"revision": "1",
+		"revision": 1,
 		"configuration": {
 			"type": "yaml",
 			"path": "updated-pipeline.yml",
@@ -794,18 +794,18 @@ func TestPutHandler_ServeHTTP(t *testing.T) {
 			},
 		},
 		{
-			name:                 "successful update with folder processing",
-			organization:         testOrg,
-			project:              testProject,
-			pipelineID:           testPipelineID,
-			authHeader:           testAuthHeader,
-			requestBody:          validPutRequestBody,
+			name:         "successful update with folder processing",
+			organization: testOrg,
+			project:      testProject,
+			pipelineID:   testPipelineID,
+			authHeader:   testAuthHeader,
+			requestBody:  validPutRequestBody,
 			setupMock: func(mockClient *mockHTTPClient) {
 				// The response from the API has a path with a leading backslash
 				mockClient.setResponse(pipelinePutURL, http.StatusOK, validBuildDefinitionResp)
 			},
-			expectedStatus:       http.StatusOK,
-			expectedContentType:  "application/json",
+			expectedStatus:      http.StatusOK,
+			expectedContentType: "application/json",
 			// The final response to the client should have the backslash removed.
 			expectedBodyContains: `"folder":"TestFolder"`,
 			expectedRequestCount: 1,
