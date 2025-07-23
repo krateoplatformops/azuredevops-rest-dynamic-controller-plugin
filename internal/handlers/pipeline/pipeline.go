@@ -520,26 +520,18 @@ func (h *putHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	h.Log.Printf("Received request body for updating pipeline: %s", string(body))
 
-	// temporary workaround
-	// waiting for type-safe status managed by oasgen
-	var updateRequest map[string]interface{}
+	// to be restored when the type-safe status is managed by oasgen
+	var updateRequest UpdatePipelineRequest
 	if err := json.Unmarshal(body, &updateRequest); err != nil {
 		h.writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON in request body")
-		h.Log.Printf("Failed to unmarshal request body: %v", err)
+		h.Log.Printf("[PUT]Failed to unmarshal request body: %v", err)
 		return
 	}
 
-	// to be restored when the type-safe status is managed by oasgen
-	//var updateRequest UpdatePipelineRequest
-	//if err := json.Unmarshal(body, &updateRequest); err != nil {
-	//	h.writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON in request body")
-	//	h.Log.Printf("[PUT]Failed to unmarshal request body: %v", err)
-	//	return
-	//}
-
 	h.Log.Printf("Updating pipeline with ID %s for organization %s and project %s", id, organization, project)
 
-	// workaround needed, waiting the type-safe status
+	// workaround needed: waiting for RDC fixes for building request with same parameter both in path and body
+	// right now it "id" is only present on the path (and so cam be parsed as a string)
 	// id string to int32 conversion
 	var pipelineID int32
 	if idInt, err := strconv.Atoi(id); err != nil {
@@ -550,32 +542,19 @@ func (h *putHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		pipelineID = int32(idInt)
 	}
 
-	// workaround needed, waiting the type-safe status
-	// revision string to int32 conversion
-	var revision int32
-	if revisionStr, ok := updateRequest["revision"].(string); ok {
-		if revisionInt, err := strconv.Atoi(revisionStr); err != nil {
-			h.writeErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Invalid revision: %s", revisionStr))
-			h.Log.Printf("Failed to convert revision to int32: %v", err)
-			return
-		} else {
-			revision = int32(revisionInt)
-		}
-	}
-
 	// create the object BuildDefinitionMinimal to be used as request body  for the PUT request to Azure DevOps API
 	buildDefinitionMinimal := &BuildDefinitionMinimal{
-		Name:     updateRequest["name"].(string),
-		Path:     updateRequest["folder"].(string),
+		Name:     updateRequest.Name,
+		Path:     updateRequest.Folder,
 		ID:       pipelineID,
-		Revision: revision,
+		Revision: updateRequest.Revision,
 		Repository: &BuildRepository{
-			ID:   updateRequest["configuration"].(map[string]interface{})["repository"].(map[string]interface{})["id"].(string),
-			Type: normalizeRepoTypeToAzure(updateRequest["configuration"].(map[string]interface{})["repository"].(map[string]interface{})["type"].(string)),
+			ID:   updateRequest.Configuration.Repository.ID,
+			Type: normalizeRepoTypeToAzure(updateRequest.Configuration.Repository.Type),
 		},
-		Type: updateRequest["configuration"].(map[string]interface{})["type"].(string),
+		Type: updateRequest.Configuration.Type,
 		Process: &Process{
-			YAMLFilename: updateRequest["configuration"].(map[string]interface{})["path"].(string),
+			YAMLFilename: updateRequest.Configuration.Path,
 		},
 	}
 

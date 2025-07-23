@@ -48,9 +48,8 @@ type BuildRepository struct {
 	Type string `json:"type"` // Required - enum: unknown, gitHub, azureReposGit, azureReposGitHyphenated
 }
 
-// BuildDefinitionMinimal represents the request made by the plugin to Azure DevOps API
-// when updating a pipeline
-// The plugin will construct this object starting from the rquest body (UpdatePipelineParameters)
+// BuildDefinitionMinimal represents the request made by the plugin to Azure DevOps API when updating a pipeline
+// The plugin will construct this object starting from the request body (UpdatePipelineParameters) coming from RDC
 type BuildDefinitionMinimal struct {
 	Name       string           `json:"name,omitempty"`
 	Path       string           `json:"path,omitempty"`
