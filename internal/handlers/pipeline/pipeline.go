@@ -520,16 +520,6 @@ func (h *putHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	h.Log.Printf("Received request body for updating pipeline: %s", string(body))
 
-	// temporary workaround
-	// to be removed
-	// waiting for type-safe status managed by oasgen
-	//var updateRequest map[string]interface{}
-	//if err := json.Unmarshal(body, &updateRequest); err != nil {
-	//	h.writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON in request body")
-	//	h.Log.Printf("Failed to unmarshal request body: %v", err)
-	//	return
-	//}
-
 	// to be restored when the type-safe status is managed by oasgen
 	var updateRequest UpdatePipelineRequest
 	if err := json.Unmarshal(body, &updateRequest); err != nil {
@@ -541,7 +531,7 @@ func (h *putHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.Log.Printf("Updating pipeline with ID %s for organization %s and project %s", id, organization, project)
 
 	// workaround needed: waiting for RDC fixes for building request with same parameter both in path and body
-	// right now it is only on the path
+	// right now it "id" is only present on the path (and so cam be parsed as a string)
 	// id string to int32 conversion
 	var pipelineID int32
 	if idInt, err := strconv.Atoi(id); err != nil {
@@ -551,19 +541,6 @@ func (h *putHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		pipelineID = int32(idInt)
 	}
-
-	// workaround needed, waiting the type-safe status
-	// revision string to int32 conversion
-	//var revision int32
-	//if revisionStr, ok := updateRequest["revision"].(string); ok {
-	//	if revisionInt, err := strconv.Atoi(revisionStr); err != nil {
-	//		h.writeErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Invalid revision: %s", revisionStr))
-	//		h.Log.Printf("Failed to convert revision to int32: %v", err)
-	//		return
-	//	} else {
-	//		revision = int32(revisionInt)
-	//	}
-	//}
 
 	// create the object BuildDefinitionMinimal to be used as request body  for the PUT request to Azure DevOps API
 	buildDefinitionMinimal := &BuildDefinitionMinimal{
