@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -164,6 +165,7 @@ func (h *postHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// For new repositories (not forks), if a default branch is specified, initialization must be explicitly enabled.
 	// Since Azure DevOps does not allow setting a default branch on an uninitialized repository (empty repository)
+	// Therefore, we return a 400 Bad Request if this condition is not met.
 	if createRequest.ParentRepository == nil && needsDefaultBranchUpdate && !createRequest.Initialize {
 		h.writeErrorResponse(w, http.StatusBadRequest, "When specifying a 'defaultBranch' for a new repository, 'initialize' must be set to true")
 		return
@@ -212,6 +214,7 @@ func (h *postHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// This is a new repository - handle initialization and branch creation
 		if createRequest.Initialize {
+			// Repository is to be initialized
 			h.Log.Printf("Repository '%s' is not a fork, proceeding with initialization", createdRepo.Name)
 
 			// Initialize with the requested branch (or default if none specified)
@@ -222,7 +225,7 @@ func (h *postHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			h.Log.Printf("Repository '%s' will be initialized with an initial commit on branch '%s'", createdRepo.Name, initBranch)
 
-			if err := h.initializeRepository(organization, projectId, createdRepo.ID, apiVersion, authHeader, initBranch); err != nil {
+			if err := h.initializeRepository(organization, projectId, createdRepo.ID, authHeader, initBranch); err != nil {
 				h.writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to initialize repository '%s': %v", createdRepo.Name, err))
 				return
 			}
@@ -230,9 +233,9 @@ func (h *postHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// After initialization, the branch exists, so we can and go directly to setting it as default if needed
 		} else {
 			// Repository is not initialized and is not a fork
-			// If we reach here, something probably somewhat unexpected happened
-			// since previous validation should have blocked this case
-			h.Log.Printf("Repository '%s' was created without initialization. A custom default branch was requested ('%s'), but this should have been blocked by validation.", createdRepo.Name, requestedDefaultBranch)
+			h.Log.Printf("Repository '%s' was created without initialization. No branches exist yet.", createdRepo.Name)
+
+			// If a default branch was requested, this is an error since we cannot set a default branch on an uninitialized repo
 			if needsDefaultBranchUpdate {
 				h.Log.Printf("Cannot set default branch '%s' on uninitialized repository '%s' - no branches exist", requestedDefaultBranch, createdRepo.Name)
 				h.writeErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Cannot set default branch '%s' on uninitialized repository '%s' - no branches exist", requestedDefaultBranch, createdRepo.Name))
@@ -385,10 +388,18 @@ func (h *postHandler) updateRepositoryDefaultBranch(organization, projectId, rep
 // - branch existence check
 // - validating sourceRef
 
-func (h *postHandler) initializeRepository(organization, projectId, repositoryId, apiVersion, authHeader, branchToInit string) error {
+func (h *postHandler) initializeRepository(organization, projectId, repositoryId, authHeader, branchToInit string) error {
 	// Ensure branch name has proper format
 	if !strings.HasPrefix(branchToInit, "refs/heads/") {
 		branchToInit = "refs/heads/" + branchToInit
+	}
+
+	// Git Pushes may require a different API version, we pass it via env variable GIT_PUSHES_API_VERSION
+
+	apiVersion := os.Getenv("GIT_PUSHES_API_VERSION")
+	if apiVersion == "" {
+		h.Log.Print("GIT_PUSHES_API_VERSION environment variable not set, using default API version")
+		apiVersion = "7.2-preview.3" // Default Git Pushes API version if not set
 	}
 
 	url := fmt.Sprintf("https://dev.azure.com/%s/%s/_apis/git/repositories/%s/pushes?api-version=%s", organization, projectId, repositoryId, apiVersion)

@@ -52,12 +52,12 @@ func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	}
 
 	// Default response
-    fmt.Printf("MockHTTPClient: No response configured for URL: %s. Returning 404.\n", key)
-    return &http.Response{
-        StatusCode: http.StatusNotFound,
-        Body:       io.NopCloser(strings.NewReader(`{"message": "Not Found"}`)),
-        Header:     make(http.Header),
-    }, nil
+	fmt.Printf("MockHTTPClient: No response configured for URL: %s. Returning 404.\n", key)
+	return &http.Response{
+		StatusCode: http.StatusNotFound,
+		Body:       io.NopCloser(strings.NewReader(`{"message": "Not Found"}`)),
+		Header:     make(http.Header),
+	}, nil
 }
 
 // setResponse allows setting a predefined response for a specific URL
@@ -106,19 +106,20 @@ func createTestPostHandler(mockClient *mockHTTPClient) *postHandler {
 
 // Test data constants
 const (
-	testOrg        = "testorg"
-	testProject    = "testproject"
-	testRepoID     = "test-repo-id"
-	testAPIVersion = "7.2-preview.2"
-	testAuthHeader = "Basic dGVzdDp0ZXN0"
-	testUsername   = "test"
-	testPassword   = "test"
+	testOrg                 = "testorg"
+	testProject             = "testproject"
+	testRepoID              = "test-repo-id"
+	testAPIVersion          = "7.2-preview.2"
+	testGitPushesAPIVersion = "7.2-preview.3"
+	testAuthHeader          = "Basic dGVzdDp0ZXN0"
+	testUsername            = "test"
+	testPassword            = "test"
 )
 
 var (
 	repoCreateURL = fmt.Sprintf("https://dev.azure.com/%s/%s/_apis/git/repositories?api-version=%s", testOrg, testProject, testAPIVersion)
 	repoUpdateURL = fmt.Sprintf("https://dev.azure.com/%s/%s/_apis/git/repositories/%s?api-version=%s", testOrg, testProject, testRepoID, testAPIVersion)
-	repoPushesURL = fmt.Sprintf("https://dev.azure.com/%s/%s/_apis/git/repositories/%s/pushes?api-version=%s", testOrg, testProject, testRepoID, testAPIVersion)
+	repoPushesURL = fmt.Sprintf("https://dev.azure.com/%s/%s/_apis/git/repositories/%s/pushes?api-version=%s", testOrg, testProject, testRepoID, testGitPushesAPIVersion)
 	repoRefsURL   = fmt.Sprintf("https://dev.azure.com/%s/%s/_apis/git/repositories/%s/refs?filter=heads/main&api-version=%s", testOrg, testProject, testRepoID, testAPIVersion)
 
 	validCreateRepoReqBody = `{
@@ -455,81 +456,81 @@ func TestPostHandler_ServeHTTP(t *testing.T) {
 			expectedStatus:       http.StatusAccepted, // 202 Accepted
 			expectedContentType:  "application/json",
 			expectedBodyContains: `"id":"test-repo-id"`, // Should return the created repo, but with original default branch
-			expectedRequestCount: 3, // Parent branch check + Create + Fork branch check
+			expectedRequestCount: 3,                     // Parent branch check + Create + Fork branch check
 		},
 		{
-			name:         "missing organization parameter",
-			organization: "",
-			project:      testProject,
-			apiVersion:   testAPIVersion,
-			authHeader:   testAuthHeader,
-			requestBody:  validCreateRepoReqBody,
-			setupMock:    nil,
+			name:                 "missing organization parameter",
+			organization:         "",
+			project:              testProject,
+			apiVersion:           testAPIVersion,
+			authHeader:           testAuthHeader,
+			requestBody:          validCreateRepoReqBody,
+			setupMock:            nil,
 			expectedStatus:       http.StatusBadRequest,
 			expectedContentType:  "",
 			expectedBodyContains: "Organization parameter is required",
 			expectedRequestCount: 0,
 		},
 		{
-			name:         "missing project parameter",
-			organization: testOrg,
-			project:      "",
-			apiVersion:   testAPIVersion,
-			authHeader:   testAuthHeader,
-			requestBody:  validCreateRepoReqBody,
-			setupMock:    nil,
+			name:                 "missing project parameter",
+			organization:         testOrg,
+			project:              "",
+			apiVersion:           testAPIVersion,
+			authHeader:           testAuthHeader,
+			requestBody:          validCreateRepoReqBody,
+			setupMock:            nil,
 			expectedStatus:       http.StatusBadRequest,
 			expectedContentType:  "",
 			expectedBodyContains: "Project ID parameter is required",
 			expectedRequestCount: 0,
 		},
 		{
-			name:         "missing api version parameter",
-			organization: testOrg,
-			project:      testProject,
-			apiVersion:   "",
-			authHeader:   testAuthHeader,
-			requestBody:  validCreateRepoReqBody,
-			setupMock:    nil,
+			name:                 "missing api version parameter",
+			organization:         testOrg,
+			project:              testProject,
+			apiVersion:           "",
+			authHeader:           testAuthHeader,
+			requestBody:          validCreateRepoReqBody,
+			setupMock:            nil,
 			expectedStatus:       http.StatusBadRequest,
 			expectedContentType:  "",
 			expectedBodyContains: "API version parameter is required",
 			expectedRequestCount: 0,
 		},
 		{
-			name:         "missing authorization header",
-			organization: testOrg,
-			project:      testProject,
-			apiVersion:   testAPIVersion,
-			authHeader:   "",
-			requestBody:  validCreateRepoReqBody,
-			setupMock:    nil,
+			name:                 "missing authorization header",
+			organization:         testOrg,
+			project:              testProject,
+			apiVersion:           testAPIVersion,
+			authHeader:           "",
+			requestBody:          validCreateRepoReqBody,
+			setupMock:            nil,
 			expectedStatus:       http.StatusUnauthorized,
 			expectedContentType:  "",
 			expectedBodyContains: "Request rejected due to missing or invalid Basic authentication",
 			expectedRequestCount: 0,
 		},
 		{
-			name:         "invalid request body - bad json",
-			organization: testOrg,
-			project:      testProject,
-			apiVersion:   testAPIVersion,
-			authHeader:   testAuthHeader,
-			requestBody:  `{"name": "test"`, // Malformed JSON
-			setupMock:    nil,
+			name:                 "invalid request body - bad json",
+			organization:         testOrg,
+			project:              testProject,
+			apiVersion:           testAPIVersion,
+			authHeader:           testAuthHeader,
+			requestBody:          `{"name": "test"`, // Malformed JSON
+			setupMock:            nil,
 			expectedStatus:       http.StatusBadRequest,
 			expectedContentType:  "",
 			expectedBodyContains: "Invalid JSON in request body",
 			expectedRequestCount: 0,
 		},
 		{
-			name:         "missing repository name in request body",
-			organization: testOrg,
-			project:      testProject,
-			apiVersion:   testAPIVersion,
-			authHeader:   testAuthHeader,
-			requestBody:  `{"initialize": true}`, // Missing name
-			setupMock:    nil,
+			name:                 "missing repository name in request body",
+			organization:         testOrg,
+			project:              testProject,
+			apiVersion:           testAPIVersion,
+			authHeader:           testAuthHeader,
+			requestBody:          `{"initialize": true}`, // Missing name
+			setupMock:            nil,
 			expectedStatus:       http.StatusBadRequest,
 			expectedContentType:  "",
 			expectedBodyContains: "Repository name is required",
@@ -599,14 +600,14 @@ func TestPostHandler_ServeHTTP(t *testing.T) {
 			expectedRequestCount: 3,
 		},
 		{
-			name:         "invalid sourceRef format",
-			organization: testOrg,
-			project:      testProject,
-			apiVersion:   testAPIVersion,
-			authHeader:   testAuthHeader,
-			requestBody:  validCreateRepoReqBodyFork,
-			sourceRef:    "main", // Invalid format
-			setupMock:    nil,
+			name:                 "invalid sourceRef format",
+			organization:         testOrg,
+			project:              testProject,
+			apiVersion:           testAPIVersion,
+			authHeader:           testAuthHeader,
+			requestBody:          validCreateRepoReqBodyFork,
+			sourceRef:            "main", // Invalid format
+			setupMock:            nil,
 			expectedStatus:       http.StatusBadRequest,
 			expectedContentType:  "",
 			expectedBodyContains: "sourceRef must start with 'refs/heads/'",
