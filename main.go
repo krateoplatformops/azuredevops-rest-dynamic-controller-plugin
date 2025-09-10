@@ -17,6 +17,7 @@ import (
 	"github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/internal/handlers/health"
 	"github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/internal/handlers/pipeline"
 	"github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/internal/handlers/pipelinepermission"
+	"github.com/krateoplatformops/azuredevops-rest-dynamic-controller-plugin/internal/handlers/pullrequest"
 	"github.com/krateoplatformops/plumbing/env"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -85,13 +86,18 @@ func main() {
 	mux.Handle("GET /api/{organization}/{project}/pipelines/{id}", pipeline.GetPipeline(opts))
 	mux.Handle("PUT /api/{organization}/{project}/pipelines/{id}", pipeline.PutPipeline(opts))
 	mux.Handle("DELETE /api/{organization}/{project}/pipelines/{id}", pipeline.DeletePipeline(opts))
-	//mux.Handle("POST /api/{organization}/{project}/pipelines", pipeline.PostPipeline(opts)) // Implemented but not used
+	//mux.Handle("POST /api/{organization}/{project}/pipelines", pipeline.PostPipeline(opts)) // Implemented but currently not used
 
 	// PipelinePermission
 	mux.Handle("GET /api/{organization}/{project}/pipelines/pipelinepermissions/{resourceType}/{resourceId}", pipelinepermission.GetPipelinePermission(opts))
 
 	// GitRepository
 	mux.Handle("POST /api/{organization}/{projectId}/git/repositories", gitrepository.PostGitRepository(opts))
+
+	// PullRequest
+	mux.Handle("GET /api/{organization}/{project}/git/repositories/{repositoryId}/pullrequests", pullrequest.GetPullRequests(opts))
+	mux.Handle("PATCH /api/{organization}/{project}/git/repositories/{repositoryId}/pullrequests/{pullRequestId}", pullrequest.PatchPullRequest(opts))
+	//mux.Handle("POST /api/{organization}/{project}/git/repositories/{repositoryId}/pullrequests", pullrequest.PostPullRequest(opts)) // Implemented but currently not used
 
 	// Swagger UI
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)

@@ -518,6 +518,25 @@ POST /api/{organization}/{projectId}/git/repositories
 
 </details>
 
+
+
+
+
+### PullRequest
+
+
+TODO
+
+ GET
+/{organization}/{project}/_apis/git/repositories/{repositoryId}/pullrequests
+
+
+changed the query parameters, removing the prefix "searchCriteria."
+So for example "searchCriteria.status" became just "status"
+
+
+
+
 ## Swagger Documentation
 
 For more detailed information about the API endpoints, please refer to the Swagger documentation available at `/swagger/index.html` endpoint of the service.
